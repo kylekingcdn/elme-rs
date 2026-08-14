@@ -19,7 +19,6 @@ opt-level = 3
 elme = { version = "0.0.1", path = "crates/elme" }
 elme-config = { version = "0.0.1", path = "crates/elme-config" }
 elme-db = { version = "0.0.1", path = "crates/elme-db" }
-elme-db-repo-traits = { version = "0.0.1", path = "crates/elme-db-repo-traits" }
 # ! external
 serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
 sqlx = { version = "0.8.6", default-features = false, features = ["macros", "postgres", "runtime-tokio"] }
