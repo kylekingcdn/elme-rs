@@ -1,5 +1,5 @@
 <p align='center'>
-  <img src='https://raw.githubusercontent.com/kylekingcdn/elme-rs/refs/heads/main/assets/elme-rs.png?raw=true' width=150 />
+  <img src='https://raw.githubusercontent.com/kylekingcdn/elme-rs/refs/heads/main/assets/elme-rs.png?raw=true' width=400 />
 </p>
 
 # `elme-rs`
@@ -17,16 +17,16 @@ provided.
 To simplifiy versioning, modules can be selected by using feature flags with the
 `elme` crate.
 
-By default, `elme` provides no elme modules and has 0 dependencies. Modules are
+By default, `elme` provides no modules and has 0 dependencies. Modules are
 opt-in and can be enabled via feature flags
 
 ```shell
 cargo add elme --features [module_name]
 ```
 
-Depending on `elme` and opting into modules using feature flags provides
-identical performance to manually adding each module's respective  on each
-module's respective crate, and is therefore the recommended versioning strategy.
+Opting into modules using feature flags using the `elme` crate provides
+identical performance to manually depending on the individual module crates,
+and is therefore the recommended versioning strategy.
 
 **`Cargo.toml` example**
 
