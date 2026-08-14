@@ -188,7 +188,7 @@ dependencies = [
 
 [[package]]
 name = "elme"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "elme-config",
  "elme-db",
@@ -196,7 +196,7 @@ dependencies = [
 
 [[package]]
 name = "elme-config"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "config",
  "dotenvy",
@@ -206,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "elme-db"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "secrecy",
  "serde",
