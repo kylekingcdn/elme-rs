@@ -1,0 +1,21 @@
+[package]
+name = "elme"
+description = "Framework of common glue code for Rust binaries"
+version = "0.0.1"
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+config = ["dep:elme-config"]
+db = ["dep:elme-db"]
+db-repo-traits = ["dep:elme-db", "elme-db/repo-traits"]
+
+[dependencies]
+elme-config = { workspace = true, optional = true }
+elme-db = { workspace = true, optional = true }

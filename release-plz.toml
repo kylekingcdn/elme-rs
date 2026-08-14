@@ -1,0 +1,16 @@
+# Base config sourced from axum's sane defaults: https://github.com/tokio-rs/axum/blob/main/release-plz.toml
+#
+[workspace]
+# Only release when the release PR is merged, not on every commit
+# https://release-plz.dev/docs/config#the-release_always-field
+release_always = false
+
+# Label release PRs for easy identification
+# https://release-plz.dev/docs/config#the-pr_labels-field
+pr_labels = ["release"]
+
+# Disable GitHub release generation
+git_release_enable = false
+
+# Organize release branches in hierarchy
+pr_branch_prefix = "release-plz/"

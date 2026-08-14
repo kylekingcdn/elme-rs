@@ -1,0 +1,17 @@
+# build outputs
+.cargo-ok
+artifacts/
+target/
+schemas/
+
+# ide
+.idea/
+.nova/
+*.iml
+
+# config
+.env
+*.env
+
+# platform
+.DS_Store

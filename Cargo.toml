@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.89"
+repository = "https://github.com/kylekingcdn/elme-rs"
+license = "MIT"
+publish = true
+
+[profile.dev]
+opt-level = 1
+[profile.dev.package."*"]
+opt-level = 3
+
+[workspace.dependencies]
+# ! local crates
+elme = { version = "0.0.1", path = "crates/elme" }
+elme-config = { version = "0.0.1", path = "crates/elme-config" }
+elme-db = { version = "0.0.1", path = "crates/elme-db" }
+elme-db-repo-traits = { version = "0.0.1", path = "crates/elme-db-repo-traits" }
+# ! external
+serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["macros", "postgres", "runtime-tokio"] }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
