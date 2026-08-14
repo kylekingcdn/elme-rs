@@ -12,8 +12,11 @@ publish.workspace = true
 workspace = true
 
 [features]
+## Enables the `elme-config` module
 config = ["dep:elme-config"]
+## Enables the `elme-db` module
 db = ["dep:elme-db"]
+## Enables the `repo-traits` feature of the `db` module
 db-repo-traits = ["dep:elme-db", "elme-db/repo-traits"]
 
 [dependencies]

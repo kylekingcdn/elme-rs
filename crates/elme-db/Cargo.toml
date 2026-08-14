@@ -12,6 +12,7 @@ publish.workspace = true
 workspace = true
 
 [features]
+## Include traits used for declaring repo operations (insert, batch insert, delete, etc)
 repo-traits = []
 
 [dependencies]
