@@ -167,13 +167,8 @@ dependencies = [
 name = "elme-db"
 version = "0.0.1"
 dependencies = [
- "serde",
  "sqlx",
 ]
-
-[[package]]
-name = "elme-db-repo-traits"
-version = "0.0.1"
 
 [[package]]
 name = "envy"
