@@ -33,7 +33,7 @@ elme = { version = "0.0.1", features = ["config","db"] }
 > Opting into modules using feature flags via the `elme` crate provides
 identical performance to manually depending on each module's respective crate.
 >
-> Therefore, depending on `elme` and not the module crates is recommended
+> Therefore, depending on `elme` and not the module crates is the recommended
 versioning strategy.
 
 ## Basic Usage
