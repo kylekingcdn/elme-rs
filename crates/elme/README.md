@@ -59,8 +59,3 @@ For detailed usage, please see the [crate docs](https://docs.rs/elme/latest/elme
 
 > [!NOTE]
 > Docs coming soon
-
-### [`elme-db-repo-traits`](https://github.com/kylekingcdn/elme-rs/tree/main/crates/elme-db-repo-traits)
-
-> [!NOTE]
-> Docs coming soon
