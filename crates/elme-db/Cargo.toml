@@ -12,8 +12,13 @@ publish.workspace = true
 workspace = true
 
 [features]
+#default = ["op-traits"]
 ## Include traits used for declaring repo operations (insert, batch insert, delete, etc)
-repo-traits = []
+op-traits = []
 
 [dependencies]
+secrecy.workspace = true
+serde.workspace = true
 sqlx.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

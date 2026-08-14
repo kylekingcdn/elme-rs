@@ -20,8 +20,13 @@ elme = { version = "0.0.1", path = "crates/elme" }
 elme-config = { version = "0.0.1", path = "crates/elme-config" }
 elme-db = { version = "0.0.1", path = "crates/elme-db" }
 # ! external
+config = { version = "0.15.25", default-features = false }
+dotenvy = "0.15.7"
+secrecy = { version = "0.10.3", features = ["serde"] }
 serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
-sqlx = { version = "0.8.6", default-features = false, features = ["macros", "postgres", "runtime-tokio"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["macros", "migrate", "postgres", "runtime-tokio"] }
+thiserror = "2.0.20"
+tracing = "0.1.44"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
