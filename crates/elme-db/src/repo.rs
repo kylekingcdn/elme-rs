@@ -6,6 +6,9 @@ use std::clone::Clone;
 use std::fmt::Debug;
 use std::future::Future;
 
+#[cfg(feature = "op-traits")]
+pub mod ops;
+
 pub trait Repo: Debug + Clone {
     const TABLE_NAME: &'static str;
 
