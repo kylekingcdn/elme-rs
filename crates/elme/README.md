@@ -22,19 +22,19 @@ Modules can be enabled via feature flags:
 cargo add elme --features [module_name]
 ```
 
-> [!NOTE]
-> Opting into modules using feature flags via the `elme` crate provides
-identical performance to manually depending on each module's respective crate.
->
-> Therefore, depending on `elme` and not the module crates is recommended
-versioning strategy.
-
 **`Cargo.toml` example**
 
 ```toml
 [dependencies]
 elme = { version = "0.0.1", features = ["config","db"] }
 ```
+
+> [!NOTE]
+> Opting into modules using feature flags via the `elme` crate provides
+identical performance to manually depending on each module's respective crate.
+>
+> Therefore, depending on `elme` and not the module crates is recommended
+versioning strategy.
 
 ## Basic Usage
 
