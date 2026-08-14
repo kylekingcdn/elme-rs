@@ -14,19 +14,20 @@ provided.
 
 ## Installation
 
-To simplifiy versioning, modules can be selected by using feature flags with the
-`elme` crate.
+By default, `elme` ships with 0 dependencies and all modules disabled.
 
-By default, `elme` provides no modules and has 0 dependencies. Modules are
-opt-in and can be enabled via feature flags
+Modules can be enabled via feature flags:
 
 ```shell
 cargo add elme --features [module_name]
 ```
 
-Opting into modules using feature flags using the `elme` crate provides
-identical performance to manually depending on the individual module crates,
-and is therefore the recommended versioning strategy.
+> [!NOTE]
+> Opting into modules using feature flags via the `elme` crate provides
+identical performance to manually depending on each module's respective crate.
+>
+> Therefore, depending on `elme` and not the module crates is recommended
+versioning strategy.
 
 **`Cargo.toml` example**
 
