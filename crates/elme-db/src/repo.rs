@@ -7,6 +7,7 @@ use std::fmt::Debug;
 use std::future::Future;
 
 #[cfg(feature = "op-traits")]
+#[cfg_attr(docsrs, doc(cfg(feature = "op-traits")))]
 pub mod ops;
 
 pub trait Repo: Debug + Clone {

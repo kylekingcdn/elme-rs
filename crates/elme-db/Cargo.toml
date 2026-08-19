@@ -13,7 +13,7 @@ workspace = true
 
 [features]
 #default = ["op-traits"]
-## Include traits used for declaring repo operations (insert, batch insert, delete, etc)
+## Include traits used for repo operations (insert, batch insert, delete, etc)
 op-traits = []
 
 [dependencies]
@@ -22,3 +22,7 @@ serde.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

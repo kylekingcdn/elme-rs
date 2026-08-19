@@ -23,3 +23,7 @@ db-op-traits = ["db", "elme-db/op-traits"]
 [dependencies]
 elme-config = { version = "0.0.2", path = "../elme-config", optional = true }
 elme-db = { version = "0.0.2", path = "../elme-db", optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
