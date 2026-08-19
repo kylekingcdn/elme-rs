@@ -194,6 +194,7 @@ dependencies = [
  "elme-db",
  "elme-error",
  "elme-otel",
+ "elme-shutdown",
 ]
 
 [[package]]
@@ -223,6 +224,10 @@ version = "0.0.1"
 
 [[package]]
 name = "elme-otel"
+version = "0.0.1"
+
+[[package]]
+name = "elme-shutdown"
 version = "0.0.1"
 
 [[package]]

@@ -23,12 +23,15 @@ db-op-traits = ["db", "elme-db/op-traits"]
 error = ["dep:elme-error"]
 ## Enables the `elme-otel` module
 otel = ["dep:elme-otel"]
+## Enables the `elme-shutdown` module
+shutdown = ["dep:elme-shutdown"]
 
 [dependencies]
 elme-config = { version = "0.0.2", path = "../elme-config", optional = true }
 elme-db = { version = "0.0.2", path = "../elme-db", optional = true }
 elme-error = { version = "0.0.1", path = "../elme-error", optional = true }
 elme-otel = { version = "0.0.1", path = "../elme-otel", optional = true }
+elme-shutdown = { version = "0.0.1", path = "../elme-shutdown", optional = true }
 
 [package.metadata.docs.rs]
 all-features = true

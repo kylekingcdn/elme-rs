@@ -18,3 +18,7 @@ pub use elme_error as error;
 #[cfg(feature = "otel")]
 #[cfg_attr(docsrs, doc(cfg(feature = "otel")))]
 pub use elme_otel as otel;
+
+#[cfg(feature = "shutdown")]
+#[cfg_attr(docsrs, doc(cfg(feature = "shutdown")))]
+pub use elme_shutdown as shutdown;
