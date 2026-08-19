@@ -10,3 +10,7 @@ pub use elme_config as config;
 #[cfg(feature = "db")]
 #[cfg_attr(docsrs, doc(cfg(feature = "db")))]
 pub use elme_db as db;
+
+#[cfg(feature = "error")]
+#[cfg_attr(docsrs, doc(cfg(feature = "error")))]
+pub use elme_error as error;

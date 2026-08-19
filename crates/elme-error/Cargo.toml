@@ -1,0 +1,18 @@
+[package]
+name = "elme-error"
+description = "elme module - error propagation with destination-aware back/span-trace handling"
+version = "0.0.1"
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

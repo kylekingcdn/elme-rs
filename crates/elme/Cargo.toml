@@ -19,10 +19,13 @@ config = ["dep:elme-config"]
 db = ["dep:elme-db"]
 ## Enables the `op-traits` feature of the `db` module
 db-op-traits = ["db", "elme-db/op-traits"]
+## Enables the `elme-error` module
+error = ["dep:elme-error"]
 
 [dependencies]
 elme-config = { version = "0.0.2", path = "../elme-config", optional = true }
 elme-db = { version = "0.0.2", path = "../elme-db", optional = true }
+elme-error = { version = "0.0.1", path = "../elme-error", optional = true }
 
 [package.metadata.docs.rs]
 all-features = true

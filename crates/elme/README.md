@@ -33,6 +33,7 @@ For these cases, please open an issue or submit a PR - **it's very much apprecia
 - [`elme`](#elme)
 - [`elme-config`](#elme-config)
 - [`elme-db`](#elme-db)
+- [`elme-error`](#elme-error)
 
 ## Installation
 
@@ -138,3 +139,32 @@ Support may be extended in the future.
 --------------- | ---------------
 **`db`** | Enables this module
 **`db-op-traits`** | Enables the `op-traits` feature of `elme-db` <br> This feature includes traits used for repo operations (insert, batch insert, delete, etc) <br> [Feature docs](https://docs.rs/elme-db/latest/elme_db/repo/ops/)
+
+### `elme-error`
+
+Provides types for propagating errors, spantraces, and backtraces.
+
+Similar functionality to `eyre`, `color-eyre`, `anyhow`, etc - with the following additions:
+- Configuration of backtrace/spantrace format/visibility on a per-destination basis.
+- Configuration of ANSI/color output on a per-destination basis.
+
+For example, this could allow for the following (simultaneously):
+- Output error messages with color backtraces in full to terminal
+- Output error messages with non-color backtraces in full to a file
+- Output error message strings to OTEL - with backtraces embedded in structured attra/metadata as opposed to the body
+
+<div class="warning">
+  <b>Docs and module impls will be published soon</b>
+</div>
+
+[**crates.io**](https://crates.io/crates/elme-error)
+|
+[**Docs**](https://docs.rs/elme-error/latest)
+|
+[**GitHub**](https://github.com/kylekingcdn/elme-rs/tree/main/crates/elme-error)
+
+#### Relevant `elme` feature flags
+
+**Flag** | **Description**
+--------------- | ---------------
+**`error`** | Enables this module

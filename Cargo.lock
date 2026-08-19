@@ -192,6 +192,7 @@ version = "0.0.2"
 dependencies = [
  "elme-config",
  "elme-db",
+ "elme-error",
 ]
 
 [[package]]
@@ -214,6 +215,10 @@ dependencies = [
  "thiserror",
  "tracing",
 ]
+
+[[package]]
+name = "elme-error"
+version = "0.0.1"
 
 [[package]]
 name = "equivalent"
