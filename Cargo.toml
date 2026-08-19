@@ -15,10 +15,6 @@ opt-level = 1
 opt-level = 3
 
 [workspace.dependencies]
-# ! local crates
-elme = { version = "0.0.2", path = "crates/elme" }
-elme-config = { version = "0.0.2", path = "crates/elme-config" }
-elme-db = { version = "0.0.2", path = "crates/elme-db" }
 # ! external
 config = { version = "0.15.25", default-features = false }
 dotenvy = "0.15.7"
