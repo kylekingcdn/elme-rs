@@ -14,3 +14,7 @@ pub use elme_db as db;
 #[cfg(feature = "error")]
 #[cfg_attr(docsrs, doc(cfg(feature = "error")))]
 pub use elme_error as error;
+
+#[cfg(feature = "otel")]
+#[cfg_attr(docsrs, doc(cfg(feature = "otel")))]
+pub use elme_otel as otel;

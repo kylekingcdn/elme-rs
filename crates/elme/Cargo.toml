@@ -21,11 +21,14 @@ db = ["dep:elme-db"]
 db-op-traits = ["db", "elme-db/op-traits"]
 ## Enables the `elme-error` module
 error = ["dep:elme-error"]
+## Enables the `elme-otel` module
+otel = ["dep:elme-otel"]
 
 [dependencies]
 elme-config = { version = "0.0.2", path = "../elme-config", optional = true }
 elme-db = { version = "0.0.2", path = "../elme-db", optional = true }
 elme-error = { version = "0.0.1", path = "../elme-error", optional = true }
+elme-otel = { version = "0.0.1", path = "../elme-otel", optional = true }
 
 [package.metadata.docs.rs]
 all-features = true
