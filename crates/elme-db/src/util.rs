@@ -71,11 +71,15 @@ pub async fn execute_queries_with_tx(
     db: &PgPool,
     queries: Vec<Query<'_, Postgres, PgArguments>>,
 ) -> Result<(), sqlx::Error> {
-    // ! TODO: add debug chain queries feature flag for opt-in logging of specific failure sql
-    // let mut queries_sql = Vec::new();
-    // for query in &queries {
-    //     queries_sql.push(query.sql());
-    // }
+    // !- TODO: add debug chain queries feature flag
+    //          for opt-in logging of specific failure sql,
+    //          e.g.
+    //    ```
+    //    let mut queries_sql = Vec::new();
+    //    for query in &queries {
+    //        queries_sql.push(query.sql());
+    //    }
+    //    ```
     let tx = db.begin().await?;
     match execute_queries(db, queries).await {
         Ok(()) => {

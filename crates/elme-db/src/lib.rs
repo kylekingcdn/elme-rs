@@ -9,7 +9,7 @@ pub mod error;
 pub mod repo;
 pub mod util;
 
-pub use conf::{ManagedDbConf, UnmanagedDbConf};
+pub use conf::{PgPoolConfig, PgPoolConfigBuilder, PgPoolOverrideConfig};
 pub use db::{ManagedDb, UnmanagedDb};
 pub use error::DbError;
 pub use repo::Repo;
