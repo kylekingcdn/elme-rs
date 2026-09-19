@@ -7,7 +7,7 @@ use self::rgb::{Rgb, MidpointTransition, Transition};
 use crate::task::map::TransitioningTaskMap;
 
 use chrono::{DateTime, Utc};
-use console::colors_enabled_stderr;
+use console::{colors_enabled_stderr, true_colors_enabled_stderr};
 use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressState, ProgressStyle};
 use std::cmp::max;
 use std::collections::HashMap;
@@ -200,7 +200,7 @@ impl TeardownProgressHook {
 
 pub fn timeout_style(width: usize) -> ProgressStyle {
     ProgressStyle::with_template(
-        " {prefix:.bold} [{bar_color}{wide_bar:./white.dim}\x1B[0m][{timeout}]"
+        " {prefix:.bold} [{bar_color}{wide_bar:./white.dim}{bar_color_end}][{timeout}]"
     )
     .unwrap()
     .with_key("timeout", move |state: &ProgressState, w: &mut dyn Write| {
@@ -213,25 +213,28 @@ pub fn timeout_style(width: usize) -> ProgressStyle {
         write!(w, "{value:>width$}").unwrap();
     })
     .with_key("bar_color", |state: &ProgressState, w: &mut dyn Write| {
-        // !- TODO: add runtime option for enabling/disable true colors
         let ansi =
-        if colors_enabled_stderr() {
-        //if true_colors_enabled_stderr() {
+        if true_colors_enabled_stderr() {
             Some(GREEN_TO_RED.res(state.pos(), state.len().unwrap()).ansi_fg())
-        // } else if colors_enabled_stderr() {
-        //     let len = state.len().unwrap();
-        //     if state.pos() * 3 < len {
-        //         Some(ANSI_GREEN.to_string())
-        //     } else if state.pos() * 3 / 2 < len {
-        //         Some(ANSI_YELLOW.to_string())
-        //     } else {
-        //         Some(ANSI_RED.to_string())
-        //     }
+        } else if colors_enabled_stderr() {
+            let len = state.len().unwrap();
+            if state.pos() * 3 < len {
+                Some(ANSI_GREEN.to_string())
+            } else if state.pos() * 3 / 2 < len {
+                Some(ANSI_YELLOW.to_string())
+            } else {
+                Some(ANSI_RED.to_string())
+            }
         } else {
             None
         };
         if let Some(ansi) = ansi {
             write!(w, "{ansi}").unwrap();
+        }
+    })
+    .with_key("bar_color_end", |_state: &ProgressState, w: &mut dyn Write| {
+        if colors_enabled_stderr() || true_colors_enabled_stderr() {
+            write!(w, "\x1B[0m").unwrap();
         }
     })
     .progress_chars("=>-")
@@ -243,7 +246,7 @@ pub fn instances_style(width: usize, finished: bool) -> ProgressStyle {
     } else {
         template.push_str("white.dim");
     }
-    template.push_str("}\x1B[0m][{instances}]");
+    template.push_str("}][{instances}]");
     let chars = if finished {
         "#X"
     } else {

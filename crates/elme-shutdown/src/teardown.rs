@@ -12,6 +12,7 @@ use crate::{
 use crate::progress::TeardownProgressHook;
 
 use chrono::{DateTime, Utc};
+use console::Style;
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::{broadcast, mpsc};
@@ -199,8 +200,13 @@ impl UnregisterHandler {
     fn log_remaining_tasks(&self) {
         let mut rem = self.transition_map.as_list().into_active_filtered();
         rem.sort_tasks();
-
-        let rem = rem.0.into_iter().map(|t| format!("\x1b[1m{}\x1b[0m [\x1b[2m{}x\x1b[0m]", t.task_name(), t.remaining_count())).collect::<Vec<_>>().join(", ");
+        let name_sty = Style::new().bold();
+        let count_sty = Style::new().dim();
+        let rem = rem.0.into_iter().map(|t| format!(
+            "{} [{}]",
+            name_sty.apply_to(t.task_name()),
+            count_sty.apply_to(format!("{}x", t.remaining_count())),
+        )).collect::<Vec<_>>().join(", ");
         tracing::info!("Remaining tasks: {rem}");
     }
 }
