@@ -12,16 +12,16 @@ publish.workspace = true
 workspace = true
 
 [features]
-#default = ["op-traits"]
+default = []
 ## Include traits used for repo operations (insert, batch insert, delete, etc)
 op-traits = []
 
 [dependencies]
-secrecy.workspace = true
-serde.workspace = true
-sqlx.workspace = true
-thiserror.workspace = true
-tracing.workspace = true
+secrecy = { workspace = true, features = ["serde"] }
+serde = { workspace = true }
+sqlx = { workspace = true, features = ["migrate","postgres"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true

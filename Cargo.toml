@@ -1,10 +1,12 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = [
+    "crates/*",
+]
 
 [workspace.package]
 edition = "2024"
-rust-version = "1.89"
+rust-version = "1.91"
 repository = "https://github.com/kylekingcdn/elme-rs"
 license = "MIT"
 publish = true
@@ -15,14 +17,13 @@ opt-level = 1
 opt-level = 3
 
 [workspace.dependencies]
-# ! external
 config = { version = "0.15.25", default-features = false }
-dotenvy = "0.15.7"
-secrecy = { version = "0.10.3", features = ["serde"] }
-serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
-sqlx = { version = "0.8.6", default-features = false, features = ["macros", "migrate", "postgres", "runtime-tokio"] }
-thiserror = "2.0.20"
-tracing = "0.1.44"
+dotenvy = { version = "0.15.7", default-features = false }
+secrecy = { version = "0.10.3", default-features = false } #, features = ["serde"] }
+serde = { version = "1.0.229", default-features = false } #, features = ["std", "derive"] }
+sqlx = { version = "0.8.6", default-features = false } #, features = ["macros", "migrate", "postgres", "runtime-tokio"] }
+thiserror = { version = "2.0.20", default-features = false }
+tracing = { version = "0.1.44", default-features = false }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

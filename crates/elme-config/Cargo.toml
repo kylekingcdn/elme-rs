@@ -12,10 +12,10 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-config.workspace = true
-dotenvy.workspace = true
-serde.workspace = true
-thiserror.workspace = true
+config = { workspace = true }
+dotenvy = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true
