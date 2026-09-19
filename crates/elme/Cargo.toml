@@ -12,19 +12,29 @@ publish.workspace = true
 workspace = true
 
 [features]
-#default = ["config", "db", "db-op-traits"]
+# ! Module flags
 ## Enables the `elme-config` module
-config = ["dep:elme-config"]
+config =    ["dep:elme-config"]
 ## Enables the `elme-db` module
-db = ["dep:elme-db"]
-## Enables the `op-traits` feature of the `db` module
-db-op-traits = ["db", "elme-db/op-traits"]
+db =        ["dep:elme-db"]
 ## Enables the `elme-error` module
-error = ["dep:elme-error"]
+error =     ["dep:elme-error"]
 ## Enables the `elme-otel` module
-otel = ["dep:elme-otel"]
+otel =      ["dep:elme-otel"]
 ## Enables the `elme-shutdown` module
 shutdown = ["dep:elme-shutdown"]
+# ! Module-independent features
+## Enables all optional features of enabled modules. Modules must still be
+## explicitly enabled
+full = [
+    # "ansi",
+    "elme-db?/full",
+]
+
+# ! Module-specific features
+## Enables the `op-traits` feature of the `db` module.
+## The `db` module must still be explicitly enabled
+db-op-traits =      ["elme-db?/op-traits"]
 
 [dependencies]
 elme-config = { version = "0.0.3", path = "../elme-config", optional = true }
