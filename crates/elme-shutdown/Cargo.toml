@@ -8,10 +8,50 @@ repository.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[lib]
+name = "elme_shutdown"
+
+[[example]]
+name = "basic"
+
 [lints]
 workspace = true
 
+[features]
+default = []
+## enables all features
+full = [
+    # "ansi",
+    "progress",
+    "progress-writer",
+]
+## enable ANSI/colot output (when supported)
+# ansi = ["dep:console"]
+## show lifecycle and task teardown progress
+progress = ["dep:indicatif"]
+## provides tracing-subscriber writer for proper tracing output
+progress-writer = ["progress", "tracing-subscriber/fmt","tracing-subscriber/std"]
+
 [dependencies]
+chrono = { workspace = true, features = ["now"] }
+console = { workspace = true, features = ["default"] }
+indicatif = { workspace = true, optional = true }
+lib-conf = { workspace = true, features = ["standard"] }
+serde = { workspace = true, features = ["derive"] }
+supports-color = "3.0.2"
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt", "signal", "sync", "time"] }
+tokio-util = { workspace = true, features = ["tracing"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, optional = true }
+
+[dev-dependencies]
+async-channel = { workspace = true }
+color-eyre = { workspace = true }
+indicatif = { workspace = true }
+rand = { workspace = true, features = ["thread_rng"] }
+tokio = { workspace = true, features = ["full"] }
+tracing-subscriber = { workspace = true, features = ["default", "env-filter"] }
 
 [package.metadata.docs.rs]
 all-features = true

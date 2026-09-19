@@ -22,19 +22,29 @@ error =     ["dep:elme-error"]
 ## Enables the `elme-otel` module
 otel =      ["dep:elme-otel"]
 ## Enables the `elme-shutdown` module
-shutdown = ["dep:elme-shutdown"]
+shutdown =  ["dep:elme-shutdown"]
+
 # ! Module-independent features
 ## Enables all optional features of enabled modules. Modules must still be
 ## explicitly enabled
 full = [
     # "ansi",
     "elme-db?/full",
+    "elme-shutdown?/full",
 ]
+## Enables ANSI + color output, where supported
+# ansi = ["elme-shutdown?/ansi"]
 
 # ! Module-specific features
 ## Enables the `op-traits` feature of the `db` module.
 ## The `db` module must still be explicitly enabled
 db-op-traits =      ["elme-db?/op-traits"]
+## Enables the `progress` feature of the `shutdown` module.
+## The `shutdown` module must still be explicitly enabled
+shutdown-progress = ["elme-shutdown?/progress"]
+## Enables the `progress-writer` feature of the `shutdown` module.
+## The `shutdown` module must still be explicitly enabled
+shutdown-progress-writer = ["elme-shutdown?/progress-writer"]
 
 [dependencies]
 elme-config = { version = "0.0.3", path = "../elme-config", optional = true }
