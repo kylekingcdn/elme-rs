@@ -4,7 +4,7 @@
 #![doc(html_logo_url = "https://raw.githubusercontent.com/kylekingcdn/elme-rs/refs/heads/main/assets/elme-rs.png?raw=true")]
 
 use config::{Config, Environment};
-use dotenvy::dotenv;
+use dotenvy::{dotenv, dotenv_override};
 use serde::Deserialize;
 use std::fmt::Debug;
 use thiserror::Error;
@@ -22,15 +22,19 @@ where
     ///
     /// Reads from env vars + .env files in run directory
     ///
-    /// Uses the prefix configured by
+    /// Uses the prefix configured by [`Self::ENV_PREFIX`]
     ///
     /// # Errors
     ///
     /// Returns a [`LoadConfigError`], which provides variants for possible
     /// encountered error types
-    fn load() -> Result<Self, LoadConfigError> {
+    fn load(overide_param: bool) -> Result<Self, LoadConfigError> {
         // load from .env file
-        dotenv().ok();
+        if overide_param {
+            dotenv_override().ok();
+        } else {
+            dotenv().ok();
+        }
 
         // init config settings
         let settings = Config::builder()
