@@ -38,7 +38,6 @@ console = { workspace = true, features = ["default"] }
 indicatif = { workspace = true, optional = true }
 lib-conf = { workspace = true, features = ["standard"] }
 serde = { workspace = true, features = ["derive"] }
-supports-color = "3.0.2"
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "signal", "sync", "time"] }
 tokio-util = { workspace = true, features = ["tracing"] }
