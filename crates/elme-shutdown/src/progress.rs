@@ -33,7 +33,7 @@ static GREEN_TO_RED: LazyLock<MidpointTransition> = LazyLock::new(||
     GREEN.to(YELLOW).to(RED)
 );
 
-static TICK_FACTOR: u64 = 10;
+static TICK_FACTOR: u64 = 50;
 
 // !- Shared-lifetime bars
 
