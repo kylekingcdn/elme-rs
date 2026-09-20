@@ -1,6 +1,10 @@
-use lib_conf::{LibConfig, adapter::duration::SecondsAdapter};
+use lib_conf::{LibConfig, adapter::{
+    duration::SecondsAdapter,
+    tracing_level::TracingLevelAdapter,
+}};
 use std::time::Duration;
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Copy, Clone, LibConfig)]
 pub struct ShutdownConfig {
     /// The time to wait for tasks to gracefully stop.
@@ -55,4 +59,43 @@ pub struct ShutdownConfig {
     /// Calls to [`ShutdownManager::reload()`](crate::ShutdownManager::reload) will be silently ignored.
     #[config(copy, default = true)]
     pub(crate) reload_enabled: bool,
+
+    /// Enables logging of remaining teardown tasks.
+    #[config(copy, default = true)]
+    pub(crate) teardown_log_remaining: bool,
+
+    /// The `tracing::Level` used for the 'remaining tasks' teardown log messages.
+    ///
+    /// Has no effect if messages have been disabled ([`teardown_log_remaining`] set to`false`).
+    #[config(
+        copy, default = tracing::Level::INFO,
+        override_from = String, override_via = TracingLevelAdapter,
+    )]
+    pub(crate) teardown_log_remaining_level: tracing::Level,
+
+    /// Enables logging of successful teardown stats.
+    #[config(copy, default = true)]
+    pub(crate) log_teardown_stats: bool,
+
+    /// The `tracing::Level` used for the teardown stats report.
+    ///
+    /// Has no effect if stats messages have been disabled ([`log_teardown_stats`] set to`false`).
+    #[config(
+        copy, default = tracing::Level::INFO,
+        override_from = String, override_via = TracingLevelAdapter,
+    )]
+    pub(crate) log_teardown_stats_level: tracing::Level,
+
+    /// Enables logging of timed-out teardown stats.
+    #[config(copy, default = true)]
+    pub(crate) log_timeout_stats: bool,
+
+    /// The `tracing::Level` used for the timed-out teardown stats report.
+    ///
+    /// Has no effect if timeout stats messages have been disabled ([`log_timeout_stats`] set to`false`).
+    #[config(
+        copy, default = tracing::Level::ERROR,
+        override_from = String, override_via = TracingLevelAdapter,
+    )]
+    pub(crate) log_timeout_stats_level: tracing::Level,
 }
