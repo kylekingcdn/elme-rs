@@ -759,18 +759,19 @@ dependencies = [
 
 [[package]]
 name = "lib-conf"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16a76095a8b5c7fdc47b9ea0411864f10f8196b2b426ab19e5a95f64d6e30a63"
+checksum = "d6d019f1f2e5367dd5d3b95330df14618fcb6e7fcb64a66f3ee9f34d824ef485"
 dependencies = [
  "lib-conf-derive",
+ "tracing",
 ]
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a216f5047763f6fc966aad56fa57c1a663f2806f4b3150e30ef2ac8e8359382"
+checksum = "340fb95abf1eb331fe2977d2571dc79eec48aab5eb27567ee6d9b128ccc4f4db"
 dependencies = [
  "prettyplease",
  "proc-macro2",

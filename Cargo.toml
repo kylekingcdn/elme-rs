@@ -24,7 +24,7 @@ config = { version = "0.15.25", default-features = false }
 console = { version = "0.16.6", default-features = false }
 dotenvy = { version = "0.15.7", default-features = false }
 indicatif = { version = "0.18.6", default-features = false } #, features = ["tokio"] }
-lib-conf = { version = "0.3.0", default-features = false }
+lib-conf = { version = "0.3.1", default-features = false }
 lib-conf-ports = { version = "0.3.0", default-features = false }
 rand = { version = "0.9", default-features = false }
 secrecy = { version = "0.10.3", default-features = false } #, features = ["serde"] }

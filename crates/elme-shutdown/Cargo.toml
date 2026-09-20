@@ -36,7 +36,7 @@ progress-writer = ["progress", "tracing-subscriber/fmt","tracing-subscriber/std"
 chrono = { workspace = true, features = ["now"] }
 console = { workspace = true, features = ["default"] }
 indicatif = { workspace = true, optional = true }
-lib-conf = { workspace = true, features = ["standard"] }
+lib-conf = { workspace = true, features = ["standard", "adapter-tracing-level"] }
 serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "signal", "sync", "time"] }
