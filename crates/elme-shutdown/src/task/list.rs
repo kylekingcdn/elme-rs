@@ -24,14 +24,19 @@ impl<I: Itemize> TaskList<I> {
         self.into()
     }
 
+    /// Number of distinct tasks (by name). Does not take into account instances.
+    #[must_use]
+    pub fn task_total(&self) -> usize {
+        self.0.len()
+    }
     /// If the list contains any active tasks
     #[must_use]
     pub fn has_active_tasks(&self) -> bool {
         self.0.iter().any(TaskData::is_active)
     }
-    /// Number of tasks with >= 1 instance
+    /// For `TrackedTaskList`, number of tasks. For `TransitioningTaskList`, number of tasks that aren't fully transitioned
     #[must_use]
-    pub fn active_task_count(&self) -> usize {
+    pub fn active_task_total(&self) -> usize {
         self.0.iter().filter(|i| i.is_active()).count()
     }
     /// Removes task entries with 0 instances
@@ -76,7 +81,7 @@ impl TrackedTaskList {
     }
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.active_task_count() == 0
+        self.active_task_total() == 0
     }
     #[must_use]
     pub fn has_tasks(&self) -> bool {
@@ -97,6 +102,7 @@ impl TransitioningTaskList {
     pub fn instances_remaining_total(&self) -> InstanceCount {
         self.0.iter().map(|t| t.inner.remaining).sum()
     }
+    /// Sum of each task's instance count
     #[must_use]
     pub fn instances_total(&self) -> InstanceCount {
         self.0.iter().map(|t| t.inner.total).sum()
@@ -104,7 +110,28 @@ impl TransitioningTaskList {
 
     /// Number of tasks with 0 instance transitions remaining
     #[must_use]
-    pub fn transitioned_task_count(&self) -> usize {
+    pub fn transitioned_task_total(&self) -> usize {
         self.0.iter().filter(|t| t.is_fully_transitioned()).count()
+    }
+
+    /// Returns the list of tasks with the number of instances transitioned (excludes tasks with 0 instances transitioned)
+    #[must_use]
+    pub fn as_transitioned_tasks(&self) -> TrackedTaskList {
+        TaskList(self.0
+            .iter()
+            .filter(|t| usize::from(t.inner.transitioned()) > 0)
+            .map(|t| TaskData::new_with_data(t.task_name(), t.inner().transitioned()))
+            .collect()
+        )
+    }
+    /// Returns the list of tasks with the number of instances remaining (excludes tasks with all instances fully transitioned)
+    #[must_use]
+    pub fn as_untransitioned_tasks(&self) -> TrackedTaskList {
+        TaskList(self.0
+            .iter()
+            .filter(|t| t.inner.is_active())
+            .map(|t| TaskData::new_with_data(t.task_name(), t.inner().remaining()))
+            .collect()
+        )
     }
 }

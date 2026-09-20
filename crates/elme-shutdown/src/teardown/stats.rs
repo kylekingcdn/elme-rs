@@ -1,5 +1,5 @@
 use crate::task::{
-    list::TransitioningTaskList,
+    list::{TrackedTaskList, TransitioningTaskList},
     TransitioningTask,
 };
 
@@ -125,7 +125,7 @@ impl CommonStats {
         format!("{title_l} {} {title_r}", Style::new().bold().apply_to(text))
     }
     #[must_use]
-    pub fn stats_table(&self) -> String {
+    pub fn report_text(&self) -> String {
         let timed_out = self.tasks.has_active_tasks();
         let (
             title,
@@ -242,11 +242,21 @@ impl TeardownStats {
     }
     #[must_use]
     pub fn total_tasks(&self) -> usize {
+        self.common.tasks.task_total()
+    }
+    #[must_use]
+    pub fn total_instances(&self) -> usize {
         self.common.tasks.instances_total().into()
     }
     #[must_use]
-    pub fn stats_table(&self) -> String {
-        self.common.stats_table()
+    pub fn report_text(&self) -> String {
+        self.common.report_text()
+    }
+
+    /// Returns the list of tasks with the number of instances transitioned (excludes tasks with 0 instances transitioned)
+    #[must_use]
+    pub fn tasks(&self) -> TrackedTaskList {
+        self.common.tasks.as_transitioned_tasks()
     }
 }
 impl From<CommonStats> for TeardownStats {
@@ -287,20 +297,41 @@ impl TeardownTimeoutStats {
         self.common.duration_text()
     }
     #[must_use]
-    pub fn total_tasks_finished(&self) -> usize {
-        self.common.tasks.instances_transitioned_total().into()
-    }
-    #[must_use]
-    pub fn total_tasks_timed_out(&self) -> usize {
-        self.common.tasks.instances_remaining_total().into()
-    }
-    #[must_use]
     pub fn total_tasks(&self) -> usize {
+        self.common.tasks.task_total()
+    }
+    #[must_use]
+    pub fn total_instances(&self) -> usize {
         self.common.tasks.instances_total().into()
     }
     #[must_use]
-    pub fn stats_table(&self) -> String {
-        self.common.stats_table()
+    pub fn total_instances_finished(&self) -> usize {
+        self.common.tasks.instances_transitioned_total().into()
+    }
+    #[must_use]
+    pub fn total_instances_timed_out(&self) -> usize {
+        self.common.tasks.instances_remaining_total().into()
+    }
+    #[must_use]
+    pub fn report_text(&self) -> String {
+        self.common.report_text()
+    }
+
+    /// Returns the list of tasks, each containing the number of transitioned instances as
+    /// well as untransitioned instances
+    #[must_use]
+    pub fn tasks(&self) -> &TransitioningTaskList {
+        &self.common.tasks
+    }
+    /// Returns the list of tasks with the number of instances transitioned (excludes tasks with 0 instances transitioned)
+    #[must_use]
+    pub fn transitioned_tasks(&self) -> TrackedTaskList {
+        self.common.tasks.as_transitioned_tasks()
+    }
+    /// Returns the list of tasks with the number of instances remaining (excludes tasks with all instances fully transitioned)
+    #[must_use]
+    pub fn untransitioned_tasks(&self) -> TrackedTaskList {
+        self.common.tasks.as_untransitioned_tasks()
     }
 }
 impl From<CommonStats> for TeardownTimeoutStats {
