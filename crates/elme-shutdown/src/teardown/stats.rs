@@ -25,13 +25,13 @@ impl CommonStats {
     // a panic is only possible if finished_at < started_at
     #[allow(clippy::missing_panics_doc)]
     #[must_use]
-    pub fn duration(&self) -> Duration {
+    fn duration(&self) -> Duration {
         let delta = self.finished_at - self.started_at;
         delta.to_std().unwrap()
     }
     /// Formats the duration as seconds with ms decimals (e.g. `"X.XXXs"`)
     #[must_use]
-    pub fn duration_text(&self) -> String {
+    fn duration_text(&self) -> String {
         let dur = self.duration();
         let mut secs = dur.as_secs();
         let mins = secs / 60;
@@ -45,7 +45,7 @@ impl CommonStats {
     }
     /// Formats the duration as seconds with ms decimals (e.g. `"X.XXXs"`)
     #[must_use]
-    pub fn timeout_text(&self) -> String {
+    fn timeout_text(&self) -> String {
         let mut secs = self.timeout.as_secs();
         let mins = secs / 60;
         secs -= mins * 60;
@@ -131,7 +131,7 @@ impl CommonStats {
 
     }
     #[must_use]
-    pub fn report_text(&self) -> String {
+    fn report_text(&self) -> String {
         let timed_out = self.tasks.has_active_tasks();
         let (
             title,

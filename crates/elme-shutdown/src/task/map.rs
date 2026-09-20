@@ -16,31 +16,31 @@ pub(crate) struct TaskMap<I: Itemize>(
 );
 impl<I: Itemize> TaskMap<I> {
     #[allow(dead_code)] // feature-dependant
-    pub fn inner(&self) -> &HashMap<&'static str, I> {
+    pub(crate) fn inner(&self) -> &HashMap<&'static str, I> {
         &self.0
     }
 
-    pub fn get(&self, task_name: &'static str) -> Option<I> {
+    pub(crate) fn get(&self, task_name: &'static str) -> Option<I> {
         self.0.get(task_name).copied()
     }
 
-    pub fn has_active_tasks(&self) -> bool {
+    pub(crate) fn has_active_tasks(&self) -> bool {
         self.0.iter().any(|(_,i)| i.is_active())
     }
-    pub fn active_task_count(&self) -> usize {
+    pub(crate) fn active_task_count(&self) -> usize {
         self.0.iter().filter(|(_,i)| i.is_active()).count()
     }
-    pub fn _filter_active_only(&mut self) {
+    pub(crate) fn _filter_active_only(&mut self) {
         self.0 = self.0.iter().filter(|(_,i)| i.is_active()).map(|(k,v)| (*k,*v)).collect();
     }
-    pub fn into_active_filtered(self) -> Self {
+    pub(crate) fn into_active_filtered(self) -> Self {
         Self(self.0.into_iter().filter(|(_,i)| i.is_active()).collect())
     }
 
-    pub fn as_list(&self) -> TaskList<I> {
+    pub(crate) fn as_list(&self) -> TaskList<I> {
         self.into()
     }
-    pub fn _into_list(self) -> TaskList<I> {
+    pub(crate) fn _into_list(self) -> TaskList<I> {
         self.into()
     }
 }
@@ -65,10 +65,10 @@ impl<I: Itemize> From<TaskMap<I>> for TaskList<I> {
 pub(crate) type TrackedTaskMap = TaskMap<InstanceCount>;
 
 impl TrackedTaskMap {
-    pub fn instance_count(&self) -> InstanceCount {
+    pub(crate) fn instance_count(&self) -> InstanceCount {
         self.0.values().copied().sum()
     }
-    pub fn task_instance_count(&self, task_name: &'static str) -> InstanceCount {
+    pub(crate) fn task_instance_count(&self, task_name: &'static str) -> InstanceCount {
         self.get(task_name).unwrap_or_default()
     }
 }
@@ -78,7 +78,7 @@ impl TrackedTaskMap {
 pub(crate) type TransitioningTaskMap = TaskMap<TransitionInstanceCount>;
 
 impl TransitioningTaskMap {
-    pub fn try_deduct_remaining(
+    pub(crate) fn try_deduct_remaining(
         &mut self,
         task_name: &'static str,
     ) -> Result<(), TransitionError> {
@@ -90,10 +90,10 @@ impl TransitioningTaskMap {
         }
     }
     #[allow(dead_code)] // feature-dependant
-    pub fn instance_count(&self) -> InstanceCount {
+    pub(crate) fn instance_count(&self) -> InstanceCount {
         self.0.values().map(|t| t.total).sum::<InstanceCount>()
     }
-    pub fn _total_progress(&self) -> (InstanceCount, InstanceCount) {
+    pub(crate) fn _total_progress(&self) -> (InstanceCount, InstanceCount) {
         self.0.values()
             .map(|i| (i.remaining, i.total))
             .fold(

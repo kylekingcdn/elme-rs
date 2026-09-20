@@ -11,7 +11,7 @@ use tokio::sync::broadcast;
 // !- Task Registry
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RegistrationMessage {
+pub(crate) enum RegistrationMessage {
     Register(&'static str),
     Unregister(&'static str),
 }
@@ -36,27 +36,27 @@ impl TaskRegistry {
         Self::default()
     }
 
-    pub fn task_map(&self) -> &TrackedTaskMap {
+    pub(crate) fn task_map(&self) -> &TrackedTaskMap {
         &self.tasks
     }
-    pub fn as_task_list(&self) -> TrackedTaskList {
+    pub(crate) fn as_task_list(&self) -> TrackedTaskList {
         self.tasks.as_list()
     }
 
-    pub fn active_task_count(&self) -> usize {
+    pub(crate) fn active_task_count(&self) -> usize {
         self.tasks.active_task_count()
     }
-    pub fn has_active_tasks(&self) -> bool {
+    pub(crate) fn has_active_tasks(&self) -> bool {
         self.tasks.has_active_tasks()
     }
-    pub fn total_instance_count(&self) -> InstanceCount {
+    pub(crate) fn total_instance_count(&self) -> InstanceCount {
         self.tasks.instance_count()
     }
-    pub fn task_instance_count(&self, task_name: &'static str) -> InstanceCount {
+    pub(crate) fn task_instance_count(&self, task_name: &'static str) -> InstanceCount {
         self.tasks.task_instance_count(task_name)
     }
 
-    pub fn registration_rx(&self) -> broadcast::Receiver<RegistrationMessage> {
+    pub(crate) fn registration_rx(&self) -> broadcast::Receiver<RegistrationMessage> {
         self.registration_tx.subscribe()
     }
     pub(crate) fn rebuild_registration_channel(&mut self) {

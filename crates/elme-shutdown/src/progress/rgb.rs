@@ -1,21 +1,21 @@
 // !- Rgb
 
 #[derive(Debug, Copy, Clone)]
-pub struct Rgb(pub u8, pub u8, pub u8);
+pub(crate) struct Rgb(pub(crate) u8, pub(crate) u8, pub(crate) u8);
 impl Rgb {
-    pub fn ansi_fg(self) -> String {
+    pub(crate) fn ansi_fg(self) -> String {
         format!("\x1b[38;2;{};{};{}m", self.0, self.1, self.2)
     }
-    pub fn _ansi_bg(self) -> String {
+    pub(crate) fn _ansi_bg(self) -> String {
         format!("\x1b[48;2;{};{};{}m", self.0, self.1, self.2)
     }
-    pub fn _from(self, start: Self) -> DirectTransition {
+    pub(crate) fn _from(self, start: Self) -> DirectTransition {
         DirectTransition {
             start,
             end: self,
         }
     }
-    pub fn to(self, end: Self) -> DirectTransition {
+    pub(crate) fn to(self, end: Self) -> DirectTransition {
         DirectTransition {
             start: self,
             end,
@@ -25,7 +25,7 @@ impl Rgb {
 
 // !- Transition
 
-pub trait Transition {
+pub(crate) trait Transition {
     fn res(self, progress: u64, total: u64) -> Rgb;
 
     #[allow(clippy::pedantic)]
@@ -40,25 +40,25 @@ pub trait Transition {
 // !- Direct transition
 
 #[derive(Debug, Copy, Clone)]
-pub struct DirectTransition {
+pub(crate) struct DirectTransition {
     start: Rgb,
     end: Rgb,
 }
 impl DirectTransition {
-    pub fn _new(start: Rgb, end: Rgb) -> Self {
+    pub(crate) fn _new(start: Rgb, end: Rgb) -> Self {
         Self {
             start,
             end,
         }
     }
-    pub fn to(self, end: Rgb) -> MidpointTransition {
+    pub(crate) fn to(self, end: Rgb) -> MidpointTransition {
         MidpointTransition {
             start: self.start,
             mid: self.end,
             end,
         }
     }
-    pub fn _from(self, start: Rgb) -> MidpointTransition {
+    pub(crate) fn _from(self, start: Rgb) -> MidpointTransition {
         MidpointTransition {
             start,
             mid: self.start,
@@ -79,14 +79,14 @@ impl Transition for DirectTransition {
 // !- Midpoint transition
 
 #[derive(Debug, Copy, Clone)]
-pub struct MidpointTransition {
+pub(crate) struct MidpointTransition {
     start: Rgb,
     mid: Rgb,
 
     end: Rgb,
 }
 impl MidpointTransition {
-    pub fn _new(start: Rgb, mid: Rgb, end: Rgb) -> Self {
+    pub(crate) fn _new(start: Rgb, mid: Rgb, end: Rgb) -> Self {
         Self {
             start,
             mid,

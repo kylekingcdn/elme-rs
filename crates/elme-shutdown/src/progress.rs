@@ -47,7 +47,7 @@ static TICK_FACTOR: u64 = 50;
 ///
 /// Otherwise some bars will disappear after finish, pending insert order
 #[allow(dead_code, clippy::struct_field_names)]
-pub(crate) struct Bars {
+struct Bars {
     mp: MultiProgress,
     task_bars: HashMap<&'static str, ProgressBar>,
     instance_bar: ProgressBar,
@@ -63,7 +63,7 @@ pub(crate) struct TeardownProgressHook {
 }
 #[allow(unused, clippy::unused_self)]
 impl TeardownProgressHook {
-    pub fn new(
+    pub(crate) fn new(
         progress_bars: MultiProgress,
         transition_map: &TransitioningTaskMap,
         started_at: DateTime<Utc>,
@@ -193,7 +193,7 @@ impl TeardownHook for TeardownProgressHook {
 
 // !- Styles
 
-pub fn timeout_style(width: usize) -> ProgressStyle {
+fn timeout_style(width: usize) -> ProgressStyle {
     ProgressStyle::with_template(
         " {prefix:.bold} [{bar_color}{wide_bar:./white.dim}{bar_color_end}][{timeout}]"
     )
@@ -234,7 +234,7 @@ pub fn timeout_style(width: usize) -> ProgressStyle {
     })
     .progress_chars("=>-")
 }
-pub fn instances_style(width: usize, finished: bool) -> ProgressStyle {
+fn instances_style(width: usize, finished: bool) -> ProgressStyle {
     let mut template = " {prefix:.bold} [{wide_bar:.green/".to_string();
     if finished {
         template.push_str("red");
@@ -256,7 +256,7 @@ pub fn instances_style(width: usize, finished: bool) -> ProgressStyle {
     })
     .progress_chars(chars)
 }
-pub fn task_style(max_total: u64, finished: bool) -> ProgressStyle {
+pub(crate) fn task_style(max_total: u64, finished: bool) -> ProgressStyle {
     let mut digits = 1;
     let mut total = max_total;
     while total >= 10  {
@@ -275,18 +275,18 @@ pub fn task_style(max_total: u64, finished: bool) -> ProgressStyle {
 // ! Value alignment
 
 #[derive(Debug, Copy, Clone)]
-pub struct AlignedValue {
+struct AlignedValue {
     pos_width: usize, // width required for pos at max value
     value_len: usize,
 }
 impl AlignedValue {
-    pub fn new(pos_width: usize, value_len: usize) -> Self {
+    pub(crate) fn new(pos_width: usize, value_len: usize) -> Self {
         Self {
             pos_width,
             value_len,
         }
     }
-    pub fn new_instances(count: usize) -> Self {
+    pub(crate) fn new_instances(count: usize) -> Self {
         let mut pos_width = 1;
         let mut scale = count;
         while scale >= 10 {
@@ -295,7 +295,7 @@ impl AlignedValue {
         }
         Self::new(pos_width, pos_width + 1)
     }
-    pub fn new_timeout(timeout: Duration) -> Self {
+    pub(crate) fn new_timeout(timeout: Duration) -> Self {
         let mut pos_width = 1; // always include at least 1 minute digit
         let mut mins = timeout.as_secs()/60;
         while mins >= 10 {
@@ -304,7 +304,7 @@ impl AlignedValue {
         }
         Self::new(pos_width, 4) // 3 for ':xx', 1 for '-'
     }
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.pos_width + self.value_len
     }
 }

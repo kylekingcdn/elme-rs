@@ -1,5 +1,5 @@
 pub(crate) mod hook;
-pub mod stats;
+pub(crate) mod stats;
 
 use self::{
     hook::{HookDeps, HookDispatcher, TeardownHook},
@@ -23,10 +23,10 @@ use tokio_util::sync::CancellationToken;
 
 #[derive(Debug)]
 pub(crate) struct TeardownMonitorParams {
-    pub options: ShutdownConfig,
-    pub initial_tasks: TrackedTaskMap,
-    pub registration_rx: broadcast::Receiver<RegistrationMessage>,
-    pub hook_deps: HookDeps,
+    pub(crate) options: ShutdownConfig,
+    pub(crate) initial_tasks: TrackedTaskMap,
+    pub(crate) registration_rx: broadcast::Receiver<RegistrationMessage>,
+    pub(crate) hook_deps: HookDeps,
 }
 
 pub(crate) struct TeardownMonitor {
@@ -34,12 +34,12 @@ pub(crate) struct TeardownMonitor {
 }
 impl TeardownMonitor {
     // should not be used until after notified is issued
-    pub fn new(params: TeardownMonitorParams) -> Self {
+    pub(crate) fn new(params: TeardownMonitorParams) -> Self {
         Self {
             params,
         }
     }
-    pub async fn start(self) -> TeardownResult {
+    pub(crate) async fn start(self) -> TeardownResult {
         // token to be cancelled once all tasks have been gracefully stopped or on timeout
         let finished_token = CancellationToken::new();
         let (unregister_tx, unregister_rx) = mpsc::unbounded_channel();
@@ -76,7 +76,7 @@ struct UnregisterHandler {
     hook_deps: HookDeps,
 }
 impl UnregisterHandler {
-    pub fn new(
+    pub(crate) fn new(
         finished_token: CancellationToken,
         rx: mpsc::UnboundedReceiver<UnregisterMessage>,
         timeout: Duration,
@@ -93,7 +93,7 @@ impl UnregisterHandler {
             hook_deps,
         }
     }
-    pub async fn start(mut self) -> TeardownResult {
+    pub(crate) async fn start(mut self) -> TeardownResult {
         let started_at = Utc::now();
 
         let hook_dispatcher = HookDispatcher::new(
@@ -196,7 +196,7 @@ struct MessageProxy {
     timeout: Duration,
 }
 impl MessageProxy {
-    pub fn new(
+    pub(crate) fn new(
         finished_token: CancellationToken,
         tx: mpsc::UnboundedSender<UnregisterMessage>,
         timeout: Duration,
@@ -207,7 +207,7 @@ impl MessageProxy {
             timeout,
         }
     }
-    pub async fn start(self, rx: broadcast::Receiver<RegistrationMessage>) {
+    pub(crate) async fn start(self, rx: broadcast::Receiver<RegistrationMessage>) {
         tracing::info!("Starting TeardownMonitor message proxy");
 
         tokio::select! {

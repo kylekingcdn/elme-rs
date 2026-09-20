@@ -159,28 +159,28 @@ impl SharedState {
 
     #[allow(dead_code)] // feature-dependant
     #[must_use]
-    pub fn hook_deps(&self) -> &HookDeps {
+    pub(crate) fn hook_deps(&self) -> &HookDeps {
         &self.hook_deps
     }
 
-    pub fn options(&self) -> ShutdownConfig {
+    pub(crate) fn options(&self) -> ShutdownConfig {
         self.options
     }
     // gets wiped on teardown done
     // gets rebuilt on [`inform_starting`]
-    pub fn _startup_done_token(&self) -> Option<CancellationToken> {
+    pub(crate) fn _startup_done_token(&self) -> Option<CancellationToken> {
         self.startup_done_token.clone()
     }
-    pub fn teardown_start_token(&self) -> CancellationToken {
+    pub(crate) fn teardown_start_token(&self) -> CancellationToken {
         self.teardown_start_token.clone()
     }
-    pub fn teardown_done_token(&self) -> CancellationToken {
+    pub(crate) fn teardown_done_token(&self) -> CancellationToken {
         self.teardown_done_token.clone()
     }
-    pub fn task_registry(&self) -> &TaskRegistry {
+    pub(crate) fn task_registry(&self) -> &TaskRegistry {
         &self.task_registry
     }
-    pub fn register_task(shared: &LockingSharedState, task_name: &'static str) -> Result<TaskHandle, RegisterError> {
+    pub(crate) fn register_task(shared: &LockingSharedState, task_name: &'static str) -> Result<TaskHandle, RegisterError> {
         let mut locked = shared.lock().unwrap();
         if locked.teardown_started() {
             Err(RegisterError::TearingDown(task_name))
@@ -190,14 +190,14 @@ impl SharedState {
             Ok(handle)
         }
     }
-    pub fn unregister_task(shared: &LockingSharedState, task_name: &'static str) {
+    pub(crate) fn unregister_task(shared: &LockingSharedState, task_name: &'static str) {
         shared.lock().unwrap().task_registry.unregister_task(task_name);
     }
 
-    pub fn issued_command(&self) -> Option<Command> {
+    pub(crate) fn issued_command(&self) -> Option<Command> {
         self.issued_command
     }
-    pub fn pending_command(&self) -> Option<Command> {
+    pub(crate) fn pending_command(&self) -> Option<Command> {
         self.pending_command
     }
 
@@ -206,16 +206,16 @@ impl SharedState {
     /// This differs from [`startup_in_progress`], as this will return true prior to the call to [`inform_starting`].
     ///
     /// For reload commands, this will begin returning true once teardown has finished
-    pub fn starting(&self) -> bool {
+    pub(crate) fn starting(&self) -> bool {
         // !- FIXME: return false if stop issued
         self.startup_done_token.as_ref().is_none_or(|t| !t.is_cancelled())
     }
     /// Returns true after calling [`inform_starting`], up until [`inform_started`] is called
-    pub fn startup_in_progress(&self) -> bool {
+    pub(crate) fn startup_in_progress(&self) -> bool {
         self.startup_done_token.as_ref().is_some_and(|t| !t.is_cancelled())
     }
     /// Returns true once [`inform_started`] is called
-    pub fn startup_done(&self) -> bool {
+    pub(crate) fn startup_done(&self) -> bool {
         self.startup_done_token.as_ref().is_some_and(CancellationToken::is_cancelled)
     }
     /// Returns true after teardown has began
@@ -224,16 +224,16 @@ impl SharedState {
     ///
     /// For reload commands, it will begin returning false again
     /// once [`inform_starting`] is called
-    pub fn teardown_started(&self) -> bool {
+    pub(crate) fn teardown_started(&self) -> bool {
         self.teardown_start_token.is_cancelled()
     }
     /// After a stop/reload command is issued, returns true once all tasks are finished
-    pub fn _teardown_done(&self) -> bool {
+    pub(crate) fn _teardown_done(&self) -> bool {
         self.teardown_done_token.is_cancelled()
     }
 
     // current stage of app lifecycle
-    pub fn lifecycle_stage(&self) -> LifecycleStage {
+    pub(crate) fn lifecycle_stage(&self) -> LifecycleStage {
         if self.starting() {
             LifecycleStage::Startup
         } else if self.issued_command.is_none() {
@@ -243,7 +243,7 @@ impl SharedState {
         }
     }
     // current state of app
-    pub fn run_state(&self) -> RunState {
+    pub(crate) fn run_state(&self) -> RunState {
         match &self.issued_command {
             None => {
                 if self.startup_done() {
@@ -261,7 +261,7 @@ impl SharedState {
         }
     }
 
-    pub fn app_should_start(&self) -> bool {
+    pub(crate) fn app_should_start(&self) -> bool {
         match self.issued_command {
             None |
             Some(Command::Reload) => true,
@@ -269,7 +269,7 @@ impl SharedState {
         }
     }
 
-    pub fn inform_starting(shared: &LockingSharedState) -> Result<(),InformStartingError> {
+    pub(crate) fn inform_starting(shared: &LockingSharedState) -> Result<(),InformStartingError> {
         let mut locked = shared.lock().unwrap();
 
         if let Some(token) = &locked.startup_done_token {
@@ -312,7 +312,7 @@ impl SharedState {
             Ok(())
         }
     }
-    pub fn inform_started(shared: &LockingSharedState) -> Result<(), InformStartedError> {
+    pub(crate) fn inform_started(shared: &LockingSharedState) -> Result<(), InformStartedError> {
         let mut locked = shared.lock().unwrap();
 
         if locked.startup_in_progress() {
@@ -344,7 +344,7 @@ impl SharedState {
         }
     }
 
-    pub fn start_teardown(shared: &LockingSharedState) {
+    pub(crate) fn start_teardown(shared: &LockingSharedState) {
         let locked = shared.lock().unwrap();
         assert!(locked.startup_done_token.as_ref().is_some_and(CancellationToken::is_cancelled));
         assert!(!locked.teardown_start_token.is_cancelled());
@@ -354,7 +354,7 @@ impl SharedState {
         drop(locked);
         shared.lock().unwrap().teardown_start_token.cancel();
     }
-    pub fn finish_teardown(shared: &LockingSharedState) {
+    pub(crate) fn finish_teardown(shared: &LockingSharedState) {
         let mut locked = shared.lock().unwrap();
         assert!(locked.startup_done_token.as_ref().is_some_and(CancellationToken::is_cancelled));
         assert!(locked.teardown_start_token.is_cancelled());
@@ -395,16 +395,16 @@ impl SharedState {
         });
     }
 
-    pub fn on_teardown(&mut self, f: impl Fn(&TeardownStats) + Send + Sync + 'static) {
+    pub(crate) fn on_teardown(&mut self, f: impl Fn(&TeardownStats) + Send + Sync + 'static) {
         self.hook_deps.callbacks.on_teardown = Some(Arc::new(f));
     }
-    pub fn unset_on_teardown(&mut self) {
+    pub(crate) fn unset_on_teardown(&mut self) {
         self.hook_deps.callbacks.on_teardown = None;
     }
-    pub fn on_timeout(&mut self, f: impl Fn(&TeardownTimeoutStats) + Send + Sync + 'static) {
+    pub(crate) fn on_timeout(&mut self, f: impl Fn(&TeardownTimeoutStats) + Send + Sync + 'static) {
         self.hook_deps.callbacks.on_timeout = Some(Arc::new(f));
     }
-    pub fn unset_on_timeout(&mut self) {
+    pub(crate) fn unset_on_timeout(&mut self) {
         self.hook_deps.callbacks.on_timeout = None;
     }
     // if we're in startup, we should compare against the pending command, as startup is
@@ -417,7 +417,7 @@ impl SharedState {
         }
     }
 
-    pub fn reload(&mut self) -> ReloadResult {
+    pub(crate) fn reload(&mut self) -> ReloadResult {
         tracing::trace!("Attempting to issue reload command");
         match self.loaded_command() {
             None => {
@@ -437,7 +437,7 @@ impl SharedState {
             Some(Command::Stop(stop_cmd)) => ReloadResult::Stopping(stop_cmd),
         }
     }
-    pub fn stop(&mut self, exit_code: i32) -> StopResult {
+    pub(crate) fn stop(&mut self, exit_code: i32) -> StopResult {
         tracing::trace!(exit_code, "Attempting to issue stop command");
         match self.loaded_command() {
             None |

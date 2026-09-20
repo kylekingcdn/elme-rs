@@ -37,15 +37,15 @@ pub(crate) trait TeardownHook {
 /// Therefore, a dedicated struct is required for hooks that require persistent data.
 #[derive(Debug, Clone)]
 pub(crate) struct HookDeps {
-    pub log_opts: TeardownLogHookOpts,
+    pub(crate) log_opts: TeardownLogHookOpts,
 
     #[cfg(feature = "progress")]
-    pub progress_bars: indicatif::MultiProgress,
+    pub(crate) progress_bars: indicatif::MultiProgress,
 
-    pub callbacks: TeardownCallbacks,
+    pub(crate) callbacks: TeardownCallbacks,
 }
 impl HookDeps {
-    pub fn new(
+    pub(crate) fn new(
         log_opts: TeardownLogHookOpts,
         #[cfg(feature = "progress")]
         progress_bars: indicatif::MultiProgress,
@@ -81,7 +81,7 @@ pub(crate) struct HookDispatcher {
 }
 #[allow(unused, clippy::unused_self, clippy::needless_pass_by_value)]
 impl HookDispatcher {
-    pub fn new(
+    pub(crate) fn new(
         transition_map: &TransitioningTaskMap,
         started_at: DateTime<Utc>,
         timeout: Duration,
@@ -149,7 +149,7 @@ pub(crate) struct TeardownLogHook {
     opts: TeardownLogHookOpts,
 }
 impl TeardownLogHook {
-    pub fn new(opts: TeardownLogHookOpts) -> Self {
+    pub(crate) fn new(opts: TeardownLogHookOpts) -> Self {
         Self { opts }
     }
 }
@@ -230,13 +230,13 @@ impl TeardownHook for TeardownLogHook {
 
 // !- User callback hook
 
-pub type TeardownCallback = dyn Fn(&TeardownStats) + Sync + Send + 'static;
-pub type TimeoutCallback = dyn Fn(&TeardownTimeoutStats) + Sync + Send + 'static;
+pub(crate) type TeardownCallback = dyn Fn(&TeardownStats) + Sync + Send + 'static;
+pub(crate) type TimeoutCallback = dyn Fn(&TeardownTimeoutStats) + Sync + Send + 'static;
 
 #[derive(Clone, Default)]
-pub struct TeardownCallbacks {
-    pub on_teardown: Option<Arc<TeardownCallback>>,
-    pub on_timeout: Option<Arc<TimeoutCallback>>,
+pub(crate) struct TeardownCallbacks {
+    pub(crate) on_teardown: Option<Arc<TeardownCallback>>,
+    pub(crate) on_timeout: Option<Arc<TimeoutCallback>>,
 }
 impl fmt::Debug for TeardownCallbacks {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -258,7 +258,7 @@ pub(crate) struct TeardownCallbackHook {
     callbacks: TeardownCallbacks,
 }
 impl TeardownCallbackHook {
-    pub fn new(callbacks: TeardownCallbacks) -> Self {
+    pub(crate) fn new(callbacks: TeardownCallbacks) -> Self {
         Self { callbacks }
     }
 }
