@@ -14,6 +14,7 @@ use crate::{
         handle::TaskHandle,
         list::TrackedTaskList,
     },
+    teardown::stats::{TeardownStats, TeardownTimeoutStats},
 };
 
 use std::sync::{Arc, Mutex};
@@ -27,23 +28,27 @@ pub struct ShutdownManager {
 
 impl ShutdownManager {
     #[must_use]
-    fn new(options: ShutdownConfig) -> Self {
+    fn new(
+        options: ShutdownConfig,
+        #[cfg(feature = "progress")]
+        mp: indicatif::MultiProgress,
+    ) -> Self {
+        let state = SharedState::new(
+            options,
+            #[cfg(feature = "progress")]
+            mp,
+        );
         Self {
-            shared: Arc::new(Mutex::new(SharedState::new(options))),
-        }
-    }
-    #[cfg(feature = "progress")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
-    fn new_with_progress(options: ShutdownConfig, mp: indicatif::MultiProgress) -> Self {
-        Self {
-            shared: Arc::new(Mutex::new(SharedState::with_progress(options, mp))),
+            shared: Arc::new(Mutex::new(state)),
         }
     }
     #[must_use]
     pub fn init(options: ShutdownConfig) -> Self {
-        //crate::compat::init_color_support();
-
-        let manager = Self::new(options);
+        let manager = Self::new(
+            options,
+            #[cfg(feature = "progress")]
+            indicatif::MultiProgress::default(),
+        );
         if options.handle_signals() {
             SignalHandler::new_initialized(manager.shared.clone());
         }
@@ -56,13 +61,17 @@ impl ShutdownManager {
         options: ShutdownConfig,
         multi_progress: indicatif::MultiProgress,
     ) -> Self {
-        //crate::compat::init_color_support();
-
-        let manager = Self::new_with_progress(options, multi_progress);
+        let manager = Self::new(options, multi_progress);
         if options.handle_signals() {
             SignalHandler::new_initialized(manager.shared.clone());
         }
         manager
+    }
+
+    /// Options used to initialize `ShutdownManager`
+    #[must_use]
+    pub fn options(&self) -> ShutdownConfig {
+        self.shared.lock().unwrap().options()
     }
 
     #[cfg(feature = "progress")]
@@ -71,7 +80,6 @@ impl ShutdownManager {
     pub fn progress_bars(&self) -> indicatif::MultiProgress {
         self.shared.lock().unwrap().hook_deps().progress_bars.clone()
     }
-
     #[cfg(all(
         feature = "progress",
         feature = "progress-writer"
@@ -205,6 +213,94 @@ impl ShutdownManager {
             },
         }
         res
+    }
+
+    /// An optional callback/closure fn that is called once teardown completes.
+    ///
+    /// The provided fn will only be executed if **all tasks are stopped gracefully
+    /// before the timeout is reached**.
+    ///
+    /// Supports builder-style method chaining (`mut` is not required).
+    ///
+    /// Replaces any fn's provided by prior invocations. To unset the callback, use [`unset_on_teardown`].
+    ///
+    /// # Parameters
+    ///
+    /// The provided fn receives a single parameter: [`&TeardownStats`].
+    ///
+    /// # Usage
+    ///
+    /// The intended use-case is for alternative handling or reporting of teardown stats.
+    ///
+    /// This should **not** be used to handle cleanup / shutdown procedures.
+    ///
+    /// # Behavior
+    ///
+    /// If the teardown was triggered with a stop command, the application
+    /// will terminate ~immmediatrly after the provided fn returns.
+    ///
+    /// Otherwise - for a reload command - app startup should begin ~immediately after.
+    ///
+    /// # Related
+    ///
+    /// - [`unset_on_teardown()`]
+    /// - [`ShutdownConfig::log_teardown_stats`]
+    /// - [`on_timeout()`]
+    #[allow(clippy::must_use_candidate)]
+    pub fn on_teardown(&self, f: impl Fn(&TeardownStats) + Send + Sync + 'static) {
+        self.shared.lock().unwrap().on_teardown(f);
+    }
+
+    /// Removes the callback assigned via [`on_teardown`]
+    ///
+    /// Supports builder-style method chaining (`mut` is not required).
+    #[allow(clippy::must_use_candidate)]
+    pub fn unset_on_teardown(&self) {
+        self.shared.lock().unwrap().unset_on_teardown();
+    }
+
+    /// An optional callback/closure fn that is called if the teardown timeout is reached.
+    ///
+    /// The provided fn will only be executed if **the teardown timeout is reached before all
+    /// tasks have gracefully stopped**.
+    ///
+    /// Supports builder-style method chaining (`mut` is not required).
+    ///
+    /// Replaces any fn's provided by prior invocations. To unset the callback, use [`unset_on_timeout`].
+    ///
+    /// # Parameters
+    ///
+    /// The provided fn receives a single parameter: [`&TeardownTimeoutStats`].
+    ///
+    /// # Usage
+    ///
+    /// The intended use-case is for alternative handling or reporting of timeout stats.
+    ///
+    /// This should **not** be used to handle recovery attempts / cleanup / shutdown procedures.
+    ///
+    /// # Behavior
+    ///
+    /// The application will **always** terminate ~immediately after this fn is called,
+    /// regardless of the issued command.
+    ///
+    /// # Related
+    ///
+    /// - [`unset_on_timeout()`]
+    /// - [`ShutdownConfig::log_timeout_stats`]
+    /// - [`on_teardown()`]
+    #[allow(clippy::must_use_candidate)]
+    pub fn on_timeout(&self, f: impl Fn(&TeardownTimeoutStats) + Send + Sync + 'static) -> &Self {
+        self.shared.lock().unwrap().on_timeout(f);
+        self
+    }
+
+    /// Removes the callback assigned via [`on_timeout`]
+    ///
+    /// Supports builder-style method chaining (`mut` is not required).
+    #[allow(clippy::must_use_candidate)]
+    pub fn unset_on_timeout(&self) -> &Self {
+        self.shared.lock().unwrap().unset_on_timeout();
+        self
     }
 }
 

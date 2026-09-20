@@ -4,7 +4,13 @@ mod rgb;
 pub(crate) mod writer;
 
 use self::rgb::{Rgb, MidpointTransition, Transition};
-use crate::task::map::TransitioningTaskMap;
+use crate::{
+    task::map::TransitioningTaskMap,
+    teardown::{
+        hook::TeardownHook,
+        stats::{TeardownStats, TeardownTimeoutStats},
+    },
+};
 
 use chrono::{DateTime, Utc};
 use console::{colors_enabled_stderr, true_colors_enabled_stderr};
@@ -139,7 +145,14 @@ impl TeardownProgressHook {
         }
     }
 
-    pub fn on_task_unregistered(
+    fn duration_text(duration: Duration) -> String {
+        let mins = duration.as_secs() / 60;
+        let secs = duration.as_secs() - (mins * 60);
+        format!("{mins}:{secs:02}")
+    }
+}
+impl TeardownHook for TeardownProgressHook {
+    fn on_task_unregistered(
         &self,
         transition_map: &TransitioningTaskMap,
         task_name: &'static str,
@@ -154,13 +167,7 @@ impl TeardownProgressHook {
         }
     }
 
-    pub fn on_finished(
-        &self,
-        transition_map: &TransitioningTaskMap,
-        started_at: DateTime<Utc>,
-        finished_at: DateTime<Utc>,
-        timeout: Duration,
-    ) {
+    fn on_finished(&self, _stats: &TeardownStats) {
         for bar in self.bars.task_bars.values() {
             if !bar.is_finished() {
                 bar.set_style(task_style(self.max_instances as u64, true));
@@ -172,13 +179,7 @@ impl TeardownProgressHook {
         self.bars.timeout_bar.abandon();
     }
 
-    pub fn on_timeout(
-        &self,
-        transition_map: &TransitioningTaskMap,
-        started_at: DateTime<Utc>,
-        timeout_at: DateTime<Utc>,
-        timeout: Duration,
-    ) {
+    fn on_timeout(&self, _stats: &TeardownTimeoutStats) {
         for bar in self.bars.task_bars.values() {
             if !bar.is_finished() {
                 bar.abandon();
@@ -187,12 +188,6 @@ impl TeardownProgressHook {
         self.bars.instance_bar.set_style(instances_style(self.bar_value_width, true));
         self.bars.instance_bar.abandon();
         self.bars.timeout_bar.finish_using_style();
-    }
-
-    fn duration_text(duration: Duration) -> String {
-        let mins = duration.as_secs() / 60;
-        let secs = duration.as_secs() - (mins * 60);
-        format!("{mins}:{secs:02}")
     }
 }
 

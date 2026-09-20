@@ -7,7 +7,11 @@ use crate::{
         handle::TaskHandle,
         registry::TaskRegistry,
     },
-    teardown::{HookDeps, TeardownMonitor, TeardownMonitorParams},
+    teardown::{
+        hook::HookDeps,
+        stats::{TeardownStats, TeardownTimeoutStats},
+        TeardownMonitor, TeardownMonitorParams,
+    },
 };
 
 use std::process;
@@ -132,7 +136,11 @@ pub(crate) struct SharedState {
     hook_deps: HookDeps,
 }
 impl SharedState {
-    pub(crate) fn new(options: ShutdownConfig) -> Self {
+    pub(crate) fn new(
+        options: ShutdownConfig,
+        #[cfg(feature = "progress")]
+        progress: indicatif::MultiProgress,
+    ) -> Self {
         Self {
             options,
             startup_done_token: None,
@@ -141,17 +149,12 @@ impl SharedState {
             task_registry: TaskRegistry::new(),
             issued_command: None,
             pending_command: None,
-            hook_deps: HookDeps::new(),
+            hook_deps: HookDeps::new(
+                (&options).into(),
+                #[cfg(feature = "progress")]
+                progress,
+            ),
         }
-    }
-    #[cfg(feature = "progress")]
-    pub(crate) fn with_progress(
-        options: ShutdownConfig,
-        progress: indicatif::MultiProgress,
-    ) -> Self {
-        let mut state = Self::new(options);
-        state.hook_deps = HookDeps::with_progress(progress);
-        state
     }
 
     #[allow(dead_code)] // feature-dependant
@@ -160,7 +163,7 @@ impl SharedState {
         &self.hook_deps
     }
 
-    pub fn _options(&self) -> ShutdownConfig {
+    pub fn options(&self) -> ShutdownConfig {
         self.options
     }
     // gets wiped on teardown done
@@ -381,33 +384,29 @@ impl SharedState {
 
         // run teardown monitor in background
         tokio::spawn(async move {
-            // tracing::warn!("STARTING TEARDOWN MONITOR NOW");
-            let teardown_res = monitor.start().await;
-            match teardown_res {
-                Ok(stats) => {
-                    let task_count = stats.total_tasks();
-                    tracing::info!(
-                        started_at=?stats.started_at(),
-                        finished_at=?stats.finished_at(),
-                        elapsed_ms=stats.duration().as_millis(),
-                        task_count,
-                        "Teardown finished ({task_count} tasks stopped gracefully in {})",
-                        stats.duration_text(),
-                    );
-                },
-                Err(stats) => {
-                    // let finished_list = stats.tasks.0.iter().filter(|t| t.is_fully_transitioned()).collect::<Vec<_>>();
-                    tracing::error!("Teardown timed out while waiting for tasks to gracefully stop.");
-                    tracing::trace!("Full teardown timeout stats:\n{stats:#?}");
-                    tracing::warn!("Terminating now.");
-                    process::exit(1);
-                }
+            // handle termination on timeout
+            if let Err(_stats) = monitor.start().await {
+                tracing::error!("Teardown timed out while waiting for tasks to gracefully stop.");
+                tracing::warn!("Terminating now.");
+                process::exit(1);
             }
 
             Self::finish_teardown(&shared);
         });
     }
 
+    pub fn on_teardown(&mut self, f: impl Fn(&TeardownStats) + Send + Sync + 'static) {
+        self.hook_deps.callbacks.on_teardown = Some(Arc::new(f));
+    }
+    pub fn unset_on_teardown(&mut self) {
+        self.hook_deps.callbacks.on_teardown = None;
+    }
+    pub fn on_timeout(&mut self, f: impl Fn(&TeardownTimeoutStats) + Send + Sync + 'static) {
+        self.hook_deps.callbacks.on_timeout = Some(Arc::new(f));
+    }
+    pub fn unset_on_timeout(&mut self) {
+        self.hook_deps.callbacks.on_timeout = None;
+    }
     // if we're in startup, we should compare against the pending command, as startup is
     // immutable and once complete, the pending command will be loaded as the issued command
     fn loaded_command(&self) -> Option<Command> {
