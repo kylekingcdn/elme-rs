@@ -3,7 +3,7 @@ use crate::task::{
     TransitioningTask,
 };
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, Utc};
 use console::Style;
 use std::time::Duration;
 
@@ -124,6 +124,12 @@ impl CommonStats {
         let title_r = sty.apply_to(fill.to_string().repeat(title_w_right));
         format!("{title_l} {} {title_r}", Style::new().bold().apply_to(text))
     }
+    fn format_date(datetime: DateTime<Utc>) -> String {
+        static DATETIME_FMT: &str = "%Y-%m-%d %H:%M:%S";
+        datetime.with_timezone(&Local).format(DATETIME_FMT).to_string()
+
+
+    }
     #[must_use]
     pub fn report_text(&self) -> String {
         let timed_out = self.tasks.has_active_tasks();
@@ -155,11 +161,11 @@ impl CommonStats {
             separator.clone(),
             format!("{}{}",
                 Self::field_name("Started at", &name_sty),
-                Self::field_value(self.started_at.to_string(), &value_sty)
+                Self::field_value(Self::format_date(self.started_at), &value_sty)
             ),
             format!("{}{}",
                 Self::field_name(finished_at_name, &name_sty),
-                Self::field_value(self.finished_at.to_string(), &value_sty)
+                Self::field_value(Self::format_date(self.finished_at), &value_sty)
             ),
             String::new(),
             format!("{}{}",
