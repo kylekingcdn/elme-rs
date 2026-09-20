@@ -24,7 +24,7 @@ pub struct ShutdownConfig {
     /// ## Multiple invocations
     ///
     /// By default, the application will terminate immediately if a given signal is received more than once.
-    /// This behaviour can be controllled via [`terminate_on_second_signal`](Self::terminate_on_second_signal).
+    /// This behaviour can be controlled via [`terminate_on_second_signal`](Self::terminate_on_second_signal).
     ///
     /// <div class="warning">
     /// This applies to `HUP` signals <b>only if reload support is disabled</b>.<br>

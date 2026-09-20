@@ -32,18 +32,6 @@ async fn main() -> color_eyre::Result<ExitCode> {
         .with(fmt_layer)
         .init();
 
-    // let tracing_providers = {
-        // let env_conf = tracing_kickstart::TracingConfigOverride::default();
-        // let config = tracing_kickstart::TracingConfig::builder(&env_conf)
-        //     .ansi_output(true)
-        //     .ansi_sanitization(false)
-        //     .build();
-        // let attrs = tracing_kickstart::build_attrs!();
-        // tracing_kickstart::init(attrs, progress_bars, config).unwrap()
-    // };
-    // tracing_providers.register_globally();
-    // - end one-time init
-
     // init + run loop
     while shutdown_mgr.app_should_start() {
 

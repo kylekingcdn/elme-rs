@@ -28,9 +28,9 @@ where
     ///
     /// Returns a [`LoadConfigError`], which provides variants for possible
     /// encountered error types
-    fn load(overide_param: bool) -> Result<Self, LoadConfigError> {
+    fn load(override_param: bool) -> Result<Self, LoadConfigError> {
         // load from .env file
-        if overide_param {
+        if override_param {
             dotenv_override().ok();
         } else {
             dotenv().ok();

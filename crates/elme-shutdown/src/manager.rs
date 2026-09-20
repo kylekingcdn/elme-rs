@@ -171,7 +171,7 @@ impl ShutdownManager {
         let res = self.shared.lock().unwrap().reload();
         match &res {
             ReloadResult::Issued => {
-                tracing::info!("Reload issued succesfully. Starting teardown procedures");
+                tracing::info!("Reload issued successfully. Starting teardown procedures");
                 SharedState::start_teardown(&self.shared);
                 //self.teardown();
             },
@@ -189,13 +189,11 @@ impl ShutdownManager {
     }
     #[must_use]
     pub fn stop(&self, exit_code: i32) -> StopResult {
-        // !- TODO: add callback for utilizing teardown stats
-        // !-
         tracing::info!(exit_code, "Received request to stop (exit code: {exit_code})");
         let res = self.shared.lock().unwrap().stop(exit_code);
         match &res {
             StopResult::Issued(_) => {
-                tracing::info!("Stop issued succesfully. Starting teardown procedures");
+                tracing::info!("Stop issued successfully. Starting teardown procedures");
                 SharedState::start_teardown(&self.shared);
                 //self.teardown();
             },

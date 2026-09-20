@@ -406,11 +406,6 @@ impl SharedState {
 
             Self::finish_teardown(&shared);
         });
-
-        //sleep(Duration::from_secs(1));
-
-        // ensure monitor is up before returning
-        // tracing::warn!("RETURNING CONTROL TO INFORM() -> SHOULD UNLOCK SHORTLY");
     }
 
     // if we're in startup, we should compare against the pending command, as startup is

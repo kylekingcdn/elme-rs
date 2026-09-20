@@ -72,7 +72,7 @@ impl OneShotWorker {
 
 // !- Periodic worker
 
-/// An example of a background task that ocassionally does some work.
+/// An example of a background task that occasionally does some work.
 ///
 /// This is commonly used for tasks that are done on a schedule, interval, or cooldown.
 pub struct IntermittentWorker {
@@ -141,7 +141,7 @@ impl DelegatedWorker {
     /// to the delegated workers. We work on the jobs in the channel until it's exhausted,
     /// and then exit.
     ///
-    /// Had we used the same pattern as above, jobs woud be accepted by the dispatcher,
+    /// Had we used the same pattern as above, jobs would be accepted by the dispatcher,
     /// queued in the bounded channel and then abandoned, as the worker would also bail out when
     /// the teardown notification goes out.
     ///

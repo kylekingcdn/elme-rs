@@ -74,13 +74,13 @@ impl TaskRegistry {
             ?task_name,
             %prev_count,
             %new_count,
-            "registering task: {task_name} ({prev_count}->{new_count} instances)",
+            "Registering task: {task_name} ({prev_count}->{new_count} instances)",
         );
 
         self.tasks.0.entry(task_name).or_default().0 += 1;
 
         // inform task was registered
-        tracing::trace!("notifying for registered task");
+        tracing::trace!("Notifying for registered task");
         // will return err if there aren't any receivers, which is fine.
         // should only have receivers during teardown
         let _ = self.registration_tx.send(RegistrationMessage::Register(task_name));
@@ -94,18 +94,13 @@ impl TaskRegistry {
             ?task_name,
             %prev_count,
             %new_count,
-            "Unrregistering task: {task_name} ({prev_count}->{new_count} instances)",
+            "Unregistering task: {task_name} ({prev_count}->{new_count} instances)",
         );
-
-        // // DEBUG
-        // let mut debug_tasks = self.as_task_list();
-        // debug_tasks.sort_tasks();
-        // debug_tasks.dump_tasks();
 
         *self.tasks.0.entry(task_name).or_default() = new_count;
 
         // inform task was unregistered
-        tracing::trace!("notifying for unregistered task");
+        tracing::trace!("Notifying for unregistered task");
         // will return err if there aren't any receivers, which is fine.
         // should only have receivers during teardown
         let _ = self.registration_tx.send(RegistrationMessage::Unregister(task_name));
