@@ -14,7 +14,7 @@ static WIDTH: usize = 40;
 // !- Common stats interface
 
 #[derive(Debug, Clone)]
-pub struct CommonStats {
+pub(crate) struct CommonStats {
     pub started_at: DateTime<Utc>,
     pub finished_at: DateTime<Utc>,
     pub timeout: Duration,

@@ -222,11 +222,12 @@ impl ShutdownManager {
     ///
     /// Supports builder-style method chaining (`mut` is not required).
     ///
-    /// Replaces any fn's provided by prior invocations. To unset the callback, use [`unset_on_teardown`].
+    /// Replaces any fn's provided by prior invocations. To unset the callback,
+    /// use [`unset_on_teardown()`](Self::unset_on_teardown).
     ///
     /// # Parameters
     ///
-    /// The provided fn receives a single parameter: [`&TeardownStats`].
+    /// The provided fn receives a single parameter: [`&TeardownStats`](TeardownStats).
     ///
     /// # Usage
     ///
@@ -243,15 +244,15 @@ impl ShutdownManager {
     ///
     /// # Related
     ///
-    /// - [`unset_on_teardown()`]
+    /// - [`unset_on_teardown()`](Self::unset_on_teardown)
     /// - [`ShutdownConfig::log_teardown_stats`]
-    /// - [`on_timeout()`]
+    /// - [`on_timeout()`](Self::on_timeout)
     #[allow(clippy::must_use_candidate)]
     pub fn on_teardown(&self, f: impl Fn(&TeardownStats) + Send + Sync + 'static) {
         self.shared.lock().unwrap().on_teardown(f);
     }
 
-    /// Removes the callback assigned via [`on_teardown`]
+    /// Removes the callback assigned via [`on_teardown()`](Self::on_teardown)
     ///
     /// Supports builder-style method chaining (`mut` is not required).
     #[allow(clippy::must_use_candidate)]
@@ -266,11 +267,12 @@ impl ShutdownManager {
     ///
     /// Supports builder-style method chaining (`mut` is not required).
     ///
-    /// Replaces any fn's provided by prior invocations. To unset the callback, use [`unset_on_timeout`].
+    /// Replaces any fn's provided by prior invocations. To unset the callback,
+    /// use [`unset_on_timeout()`](Self::unset_on_teardown).
     ///
     /// # Parameters
     ///
-    /// The provided fn receives a single parameter: [`&TeardownTimeoutStats`].
+    /// The provided fn receives a single parameter: [`&TeardownTimeoutStats`](TeardownTimeoutStats).
     ///
     /// # Usage
     ///
@@ -285,16 +287,16 @@ impl ShutdownManager {
     ///
     /// # Related
     ///
-    /// - [`unset_on_timeout()`]
+    /// - [`unset_on_timeout()`](Self::unset_on_timeout)
     /// - [`ShutdownConfig::log_timeout_stats`]
-    /// - [`on_teardown()`]
+    /// - [`on_teardown()`](Self::on_teardown)
     #[allow(clippy::must_use_candidate)]
     pub fn on_timeout(&self, f: impl Fn(&TeardownTimeoutStats) + Send + Sync + 'static) -> &Self {
         self.shared.lock().unwrap().on_timeout(f);
         self
     }
 
-    /// Removes the callback assigned via [`on_timeout`]
+    /// Removes the callback assigned via [`on_timeout()`](Self::on_timeout)
     ///
     /// Supports builder-style method chaining (`mut` is not required).
     #[allow(clippy::must_use_candidate)]

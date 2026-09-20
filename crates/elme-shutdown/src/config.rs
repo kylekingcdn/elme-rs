@@ -79,7 +79,7 @@ pub struct ShutdownConfig {
 
     /// The `tracing::Level` used for the teardown stats report.
     ///
-    /// Has no effect if stats messages have been disabled ([`log_teardown_stats`] set to`false`).
+    /// Has no effect if stats messages have been disabled ([`log_teardown_stats`](Self::log_teardown_stats) set to`false`).
     #[config(
         copy, default = tracing::Level::INFO,
         override_from = String, override_via = TracingLevelAdapter,
