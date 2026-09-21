@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - master
-      - feature/*
+      - feature/**
       - release-plz/*
   workflow_dispatch:
 
