@@ -25,11 +25,6 @@ pub use teardown::{
     TeardownResult,
 };
 
-#[cfg(all(
-    feature = "progress",
-    feature = "progress-writer",
-))]
-#[cfg_attr(docsrs, doc(cfg(
-    feature = "progress-writer",
-)))]
+#[cfg(feature = "progress-writer")]
+#[cfg_attr(docsrs, doc(cfg(feature = "progress-writer")))]
 pub use progress::writer::ProgressWriter;
