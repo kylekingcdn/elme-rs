@@ -6,13 +6,14 @@ use crate::{
     signal::SignalHandler,
     state::{
         InformStartingError, InformStartedError,
-        LifecycleStage, LockingSharedState, RegisterError,
+        LifecycleStage, LockingSharedState,
         RunState, SharedState,
     },
     task::{
         InstanceCount,
         handle::TaskHandle,
         list::TrackedTaskList,
+        RegisterError,
     },
     teardown::stats::{TeardownStats, TeardownTimeoutStats},
 };

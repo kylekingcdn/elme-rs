@@ -12,6 +12,26 @@ use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
+// !- Errors
+
+#[derive(Debug, thiserror::Error)]
+pub enum RegisterError {
+    #[error("Failed to register task '{0}'. Currently tearing down.")]
+    TearingDown(&'static str),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum TransitionError {
+    #[error("Task not found in registry: {0}")]
+    TaskNotFound(&'static str),
+
+    #[error("Task transition instance remaining count must be <= total. (value: {value}, total: {total}")]
+    AboveTotal { value: usize, total: usize },
+
+    //#[error("Task transition instance count can not be increased. (from: {current}, to: {update}")]
+    //DecrementOnly { current: usize, update: usize },
+}
+
 // !- Itemize trait
 
 /// Keeps track of one or more groups of instances for a given task
@@ -75,18 +95,6 @@ impl Itemize for InstanceCount {
 }
 
 // !- Task transitioning instance counts
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum TransitionError {
-    #[error("Task not found in registry: {0}")]
-    TaskNotFound(&'static str),
-
-    #[error("Task transition instance remaining count must be <= total. (value: {value}, total: {total}")]
-    AboveTotal { value: usize, total: usize },
-
-    //#[error("Task transition instance count can not be increased. (from: {current}, to: {update}")]
-    //DecrementOnly { current: usize, update: usize },
-}
 
 /// [`TransitionInstanceCount`] represents the distribution of a task's instances between 2 possible states.
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]

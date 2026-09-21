@@ -6,6 +6,7 @@ use crate::{
     task::{
         handle::TaskHandle,
         registry::TaskRegistry,
+        RegisterError,
     },
     teardown::{
         hook::HookDeps,
@@ -68,12 +69,6 @@ impl RunState {
 }
 
 // !- Operation errors
-
-#[derive(Debug, thiserror::Error)]
-pub enum RegisterError {
-    #[error("Failed to register task '{0}'. Currently tearing down.")]
-    TearingDown(&'static str),
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum InformStartingError {

@@ -1,7 +1,8 @@
 use crate::{
     //listener::TeardownStartListener,
     manager::ShutdownManager,
-    state::{LockingSharedState, RegisterError, SharedState},
+    state::{LockingSharedState, SharedState},
+    task::RegisterError,
 };
 
 // !- TODO: add support for instance ids (for logging/tracing spans, etc)
