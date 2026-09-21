@@ -256,7 +256,7 @@ fn instances_style(width: usize, finished: bool) -> ProgressStyle {
     })
     .progress_chars(chars)
 }
-pub(crate) fn task_style(max_total: u64, finished: bool) -> ProgressStyle {
+fn task_style(max_total: u64, finished: bool) -> ProgressStyle {
     let mut digits = 1;
     let mut total = max_total;
     while total >= 10  {
