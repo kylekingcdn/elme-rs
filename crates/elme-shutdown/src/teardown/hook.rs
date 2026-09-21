@@ -139,7 +139,7 @@ pub(crate) struct TeardownLogHookOpts {
 impl From<&ShutdownConfig> for TeardownLogHookOpts {
     fn from(config: &ShutdownConfig) -> Self {
         Self {
-            tasks_level: config.teardown_log_remaining.then_some(config.teardown_log_remaining_level),
+            tasks_level: config.log_teardown_remaining.then_some(config.log_teardown_remaining_level),
             stats_teardown_level: config.log_teardown_stats.then_some(config.log_teardown_stats_level),
             stats_timeout_level: config.log_timeout_stats.then_some(config.log_timeout_stats_level),
         }

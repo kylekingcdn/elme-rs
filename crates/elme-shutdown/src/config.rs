@@ -62,16 +62,16 @@ pub struct ShutdownConfig {
 
     /// Enables logging of remaining teardown tasks.
     #[config(copy, default = true)]
-    pub(crate) teardown_log_remaining: bool,
+    pub(crate) log_teardown_remaining: bool,
 
     /// The `tracing::Level` used for the 'remaining tasks' teardown log messages.
     ///
-    /// Has no effect if messages have been disabled ([`teardown_log_remaining`] set to`false`).
+    /// Has no effect if messages have been disabled ([`log_teardown_remaining`] set to`false`).
     #[config(
         copy, default = tracing::Level::INFO,
         override_from = String, override_via = TracingLevelAdapter,
     )]
-    pub(crate) teardown_log_remaining_level: tracing::Level,
+    pub(crate) log_teardown_remaining_level: tracing::Level,
 
     /// Enables logging of successful teardown stats.
     #[config(copy, default = true)]
