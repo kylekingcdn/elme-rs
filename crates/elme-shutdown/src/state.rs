@@ -437,7 +437,7 @@ impl SharedState {
             Some(Command::Stop(stop_cmd)) => ReloadResult::Stopping(stop_cmd),
         }
     }
-    pub(crate) fn stop(&mut self, exit_code: i32) -> StopResult {
+    pub(crate) fn stop(&mut self, exit_code: u8) -> StopResult {
         tracing::trace!(exit_code, "Attempting to issue stop command");
         match self.loaded_command() {
             None |

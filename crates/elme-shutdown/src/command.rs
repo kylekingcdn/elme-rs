@@ -36,7 +36,7 @@ impl From<StopCommand> for Command {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct StopCommand {
-  pub exit_code: i32,
+  pub exit_code: u8,
 }
 impl fmt::Display for StopCommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -67,7 +67,7 @@ impl StopResult {
         }
     }
     #[must_use]
-    pub fn exit_code(&self) -> i32 {
+    pub fn exit_code(&self) -> u8 {
         self.command().exit_code
     }
 }

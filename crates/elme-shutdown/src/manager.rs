@@ -196,7 +196,7 @@ impl ShutdownManager {
         res
     }
     #[must_use]
-    pub fn stop(&self, exit_code: i32) -> StopResult {
+    pub fn stop(&self, exit_code: u8) -> StopResult {
         tracing::info!(exit_code, "Received request to stop (exit code: {exit_code})");
         let res = self.shared.lock().unwrap().stop(exit_code);
         match &res {
@@ -213,6 +213,16 @@ impl ShutdownManager {
             },
         }
         res
+    }
+
+    /// If a stop command has been issued, returns the inner exit code - otherwise `None`
+    #[must_use]
+    pub fn exit_code(&self) -> Option<u8> {
+        if let Some(Command::Stop(cmd)) = self.issued_command() {
+            Some(cmd.exit_code)
+        } else {
+            None
+        }
     }
 
     /// An optional callback/closure fn that is called once teardown completes.

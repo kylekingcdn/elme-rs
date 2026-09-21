@@ -38,7 +38,7 @@ pub(crate) struct SignalHandler {
     shared: LockingSharedState,
 }
 impl SignalHandler {
-    const EXIT_CODE_FROM_SIGNAL: i32 = 0;
+    const EXIT_CODE_FROM_SIGNAL: u8 = 0;
 
     fn new(shared: LockingSharedState) -> Self {
         Self {
