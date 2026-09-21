@@ -214,3 +214,5 @@ Zero-effort lifecycle management: graceful shutdown, signal handling, task track
 **Flag** | **Description**
 --------------- | ---------------
 **`shutdown`** | Enables this module
+**`shutdown-progress`** | Enables task + timeout progress bars during teardown
+**`shutdown-progress-writer`** | Provides a [`tracing-subscriber`](https://docs.rs/tracing-subscriber/latest) writer for clean `tracing` + `progress` output

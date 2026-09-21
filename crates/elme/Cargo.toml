@@ -51,7 +51,7 @@ elme-config = { version = "0.0.3", path = "../elme-config", optional = true }
 elme-db = { version = "0.0.3", path = "../elme-db", optional = true }
 elme-error = { version = "0.0.1", path = "../elme-error", optional = true }
 elme-otel = { version = "0.0.1", path = "../elme-otel", optional = true }
-elme-shutdown = { version = "0.0.1", path = "../elme-shutdown", optional = true }
+elme-shutdown = { version = "0.1.0-pre1", path = "../elme-shutdown", optional = true }
 
 [package.metadata.docs.rs]
 all-features = true

@@ -355,7 +355,7 @@ version = "0.0.1"
 
 [[package]]
 name = "elme-shutdown"
-version = "0.0.1"
+version = "0.1.0-pre1"
 dependencies = [
  "async-channel",
  "chrono",
