@@ -14,3 +14,17 @@ git_release_enable = false
 
 # Organize release branches in hierarchy
 pr_branch_prefix = "release-plz/"
+
+[changelog]
+protect_breaking_commits = true
+commit_parsers = [
+  { message = "^build\\(deps\\)", skip = true },
+  { message = "^ci[(:]", skip = true },
+  { message = "^style[(:]", skip = true },
+  { message = "^refactor\\(clippy\\)", skip = true },
+  { message = "^chore\\(release\\):", skip = true },
+  { message = "^chore: release", skip = true },
+  { message = "^chore\\(deps.*\\)", skip = true },
+  { message = "^chore\\(pr\\)", skip = true },
+  { message = "^chore\\(pull\\)", skip = true },
+]
