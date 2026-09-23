@@ -826,9 +826,9 @@ dependencies = [
 
 [[package]]
 name = "lib-conf"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6d019f1f2e5367dd5d3b95330df14618fcb6e7fcb64a66f3ee9f34d824ef485"
+checksum = "746ad0c22cb57a882db54b75174fd8f6becc4296cb21a73f1f116f035a423abc"
 dependencies = [
  "lib-conf-derive",
  "tracing",
@@ -836,9 +836,9 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "340fb95abf1eb331fe2977d2571dc79eec48aab5eb27567ee6d9b128ccc4f4db"
+checksum = "0df895e3d3c7a76df6300caf88d8a1502e0e09c16da7597b900ddcc28bc020f1"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -849,9 +849,9 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-ports"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63a8a73aaf56994e265659b9d7590b3d9a91e7ac8d752ec5a36ebf6bbf2abd71"
+checksum = "ca05fddb02f5466a20535b9023be3a7d4e187cf4599b69628f94431f8b313079"
 dependencies = [
  "lib-conf",
  "log",
