@@ -139,7 +139,7 @@ impl TransitionInstanceCount {
 
     /// Returns a string representing the progress as a fraction
     ///
-    /// ```
+    /// ```text
     /// "{transitioned}/{total}"
     /// ```
     ///
@@ -154,7 +154,7 @@ impl TransitionInstanceCount {
     }
     /// Returns a string representing the progress as a fraction
     ///
-    /// ```
+    /// ```text
     /// "{remaining}/{total}"
     /// ```
     ///
