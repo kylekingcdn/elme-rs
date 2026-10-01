@@ -35,7 +35,7 @@ And additional quality-of-life features, such as:
 
 The library module docs contain a succinct briefing of core concepts.
 
-For first-time users or those seeking a quick overview, [this is the place to start](https://docs.rs/elme-shutdown/latest/elme_shutdown/#overview
+For first-time users or those seeking a quick overview, [this is the place to start](https://docs.rs/elme-shutdown/latest/elme_shutdown/#overview)
 
 ## Examples
 
