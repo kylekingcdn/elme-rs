@@ -89,13 +89,20 @@ impl CommonStats {
         if tasks.is_empty() {
             None
         } else {
+            const YELLOW: (u8, u8, u8) = (252, 188, 9);
             let params = Self::task_list_params(&tasks);
-            let value_sty = Style::new().green();
+            let complete_sty = Style::new().green();
+            let partial_sty = Style::new().true_color(YELLOW.0, YELLOW.1, YELLOW.2);
 
             Some(tasks.iter().map(|t| {
                 let transitioned = t.transitioned_count().into();
                 let total = t.total_count().into();
-                Self::task_line(t.task_name(), transitioned, total, &value_sty, &params)
+                let sty = if t.is_fully_transitioned() {
+                    &complete_sty
+                } else {
+                    &partial_sty
+                };
+                Self::task_line(t.task_name(), transitioned, total, sty, &params)
             }).collect())
         }
     }
@@ -140,7 +147,7 @@ impl CommonStats {
         ) = if timed_out {(
             "Timed-out Teardown Stats",
             "Timed-out at",
-            Style::new().red(),
+            Style::new().bold().red(),
         )} else {(
             "Teardown Stats",
             "Finished at",

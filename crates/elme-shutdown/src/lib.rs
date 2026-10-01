@@ -292,7 +292,7 @@
 //! Timeout:       <span style="font-weight:bold;">15s</span>
 //!
 //! <span style="font-weight:bold;">Gracefully stopped tasks</span>
-//!  - Delegated worker     [<span style="color:green;">1/4</span>]
+//!  - Delegated worker     [<span style="color:#FCBC09;">1/4</span>]
 //!  - Dispatcher           [<span style="color:green;">1/1</span>]
 //!  - Intermittent worker  [<span style="color:green;">1/1</span>]
 //!
