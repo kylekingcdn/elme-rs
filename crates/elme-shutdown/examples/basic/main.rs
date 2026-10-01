@@ -43,7 +43,7 @@ async fn main() -> color_eyre::Result<ExitCode> {
 
         // – init app
         //   any init that is not 'one-time' should happen here
-        shutdown_mgr.inform_starting().unwrap();
+        shutdown_mgr.inform_starting()?;
         let workers = WorkerManager::new(shutdown_mgr.register_task("Worker manager")?);
 
         // – run app
