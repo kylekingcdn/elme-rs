@@ -117,11 +117,7 @@ impl ShutdownManager {
         options: ShutdownConfig,
         multi_progress: indicatif::MultiProgress,
     ) -> Self {
-        let manager = Self::new(options, multi_progress);
-        if options.handle_signals() {
-            SignalHandler::new_initialized(manager.shared.clone());
-        }
-        manager
+        Self::new(options, multi_progress)
     }
 
     /// Options used to initialize `ShutdownManager`
@@ -160,32 +156,12 @@ impl ShutdownManager {
     ))))]
     #[must_use]
     pub fn progress_writer(&self) -> crate::progress::writer::ProgressWriter {
-        let mp = self.shared.lock().unwrap().hook_deps().progress_bars.clone();
+        let mp = self.progress_bars();
         crate::progress::writer::ProgressWriter::new(mp)
     }
 
-    #[must_use]
-    pub fn issued_command(&self) -> Option<Command> {
-        self.shared.lock().unwrap().issued_command()
-    }
-    #[must_use]
-    pub fn pending_command(&self) -> Option<Command> {
-        self.shared.lock().unwrap().pending_command()
-    }
+    // !- State management
 
-    /// Current stage of app lifecycle
-    /// s
-    #[must_use]
-    pub fn lifecycle_stage(&self) -> LifecycleStage {
-        self.shared.lock().unwrap().lifecycle_stage()
-    }
-    // current state of app
-    #[must_use]
-    pub fn run_state(&self) -> RunState {
-        self.shared.lock().unwrap().run_state()
-    }
-
-    /// returns true until a stop command has been issued
     #[must_use]
     pub fn app_should_start(&self) -> bool {
         self.shared.lock().unwrap().app_should_start()
@@ -195,6 +171,108 @@ impl ShutdownManager {
     }
     pub fn inform_started(&self) -> Result<(), InformStartedError> {
         SharedState::inform_started(&self.shared)
+    }
+
+    #[must_use]
+    pub fn stop(&self, exit_code: u8) -> StopResult {
+        tracing::info!(exit_code, "Received request to stop (exit code: {exit_code})");
+        let res = self.shared.lock().unwrap().stop(exit_code);
+        match &res {
+            StopResult::Issued(_) => {
+                tracing::info!("Stop issued successfully. Starting teardown procedures");
+                SharedState::start_teardown(&self.shared);
+                //self.teardown();
+            },
+            StopResult::IssuedPending(_) => {
+                tracing::info!("Stop is pending and will be issued upon finishing startup");
+            },
+            StopResult::AlreadyIssued(StopCommand { exit_code }) => {
+                tracing::info!("Already stopping (exit code: {exit_code}) - request ignored.");
+            },
+        }
+        res
+    }
+    #[must_use]
+    pub fn reload(&self) -> ReloadResult {
+        tracing::info!("Received request to reload");
+        let res = self.shared.lock().unwrap().reload();
+        match &res {
+            ReloadResult::Issued => {
+                tracing::info!("Reload issued successfully. Starting teardown procedures");
+                SharedState::start_teardown(&self.shared);
+                //self.teardown();
+            },
+            ReloadResult::IssuedPending  => {
+                tracing::info!("Reload is pending and will be issued upon finishing startup");
+            },
+            ReloadResult::AlreadyIssued  => {
+                tracing::info!("Ignoring ShutdownManager::reload() call - was already issued");
+            },
+            ReloadResult::Stopping(stop_cmd) => {
+                tracing::info!("Ignoring ShutdownManager::reload() call - stop has been called: {stop_cmd}");
+            },
+        }
+        res
+    }
+    #[must_use]
+    pub fn issue_command(&self, command: Command) -> CommandResult {
+        match command {
+            Command::Reload => self.reload().into(),
+            Command::Stop(stop_cmd)  => self.stop(stop_cmd.exit_code).into(),
+        }
+    }
+
+    /// If a stop command has been issued, returns the inner exit code - otherwise `None`
+    #[must_use]
+    pub fn exit_code(&self) -> Option<u8> {
+        if let Some(Command::Stop(cmd)) = self.issued_command() {
+            Some(cmd.exit_code)
+        } else {
+            None
+        }
+    }
+    /// The currently issued [`Command`].
+    ///
+    /// # Issued vs. Pending
+    ///
+    /// If a command is issued while the application is in it's startup stage, it will be
+    /// stored to [`pending_command`](ShutdownManager::pending_command) until startup completes ([`inform_started`](ShutdownManager::inform_started) is called).
+    ///
+    /// Once startup completes, the pending command will replace the issued command (if any),
+    /// and teardown will begin.
+    #[must_use]
+    pub fn issued_command(&self) -> Option<Command> {
+        self.shared.lock().unwrap().issued_command()
+    }
+    
+    /// The pending [`Command`].
+    ///
+    /// # Issued vs. Pending
+    ///
+    /// If a command is issued while the application is in it's startup stage, it will be
+    /// stored to [`pending_command`](ShutdownManager::pending_command) until startup completes ([`inform_started`](ShutdownManager::inform_started) is called).
+    ///
+    /// Once startup completes, the pending command will replace the issued command (if any),
+    /// and teardown will begin.
+    #[must_use]
+    pub fn pending_command(&self) -> Option<Command> {
+        self.shared.lock().unwrap().pending_command()
+    }
+
+    /// Current stage of app lifecycle
+    #[must_use]
+    pub fn lifecycle_stage(&self) -> LifecycleStage {
+        self.shared.lock().unwrap().lifecycle_stage()
+    }
+    #[must_use]
+    pub fn run_state(&self) -> RunState {
+        self.shared.lock().unwrap().run_state()
+    }
+    
+    // !- Task management
+
+    pub fn register_task(&self, task_name: &'static str) -> Result<TaskHandle, RegisterError> {
+        SharedState::register_task(&self.shared, task_name)
     }
 
     #[must_use]
@@ -221,9 +299,7 @@ impl ShutdownManager {
         self.shared.lock().unwrap().task_registry().task_instance_count(task_name)
     }
 
-    pub fn register_task(&self, task_name: &'static str) -> Result<TaskHandle, RegisterError> {
-        SharedState::register_task(&self.shared, task_name)
-    }
+    // !- Teardown futures
 
     #[allow(clippy::missing_panics_doc)]
     pub fn wait_for_teardown_start(&self) -> impl Future<Output=()> {
@@ -236,64 +312,7 @@ impl ShutdownManager {
         token.cancelled_owned()
     }
 
-    #[must_use]
-    pub fn issue_command(&self, command: Command) -> CommandResult {
-        match command {
-            Command::Reload => self.reload().into(),
-            Command::Stop(stop_cmd)  => self.stop(stop_cmd.exit_code).into(),
-        }
-    }
-    #[must_use]
-    pub fn reload(&self) -> ReloadResult {
-        tracing::info!("Received request to reload");
-        let res = self.shared.lock().unwrap().reload();
-        match &res {
-            ReloadResult::Issued => {
-                tracing::info!("Reload issued successfully. Starting teardown procedures");
-                SharedState::start_teardown(&self.shared);
-                //self.teardown();
-            },
-            ReloadResult::IssuedPending  => {
-                tracing::info!("Reload is pending and will be issued upon finishing startup");
-            },
-            ReloadResult::AlreadyIssued  => {
-                tracing::info!("Ignoring ShutdownManager::reload() call - was already issued");
-            },
-            ReloadResult::Stopping(stop_cmd) => {
-                tracing::info!("Ignoring ShutdownManager::reload() call - stop has been called: {stop_cmd}");
-            },
-        }
-        res
-    }
-    #[must_use]
-    pub fn stop(&self, exit_code: u8) -> StopResult {
-        tracing::info!(exit_code, "Received request to stop (exit code: {exit_code})");
-        let res = self.shared.lock().unwrap().stop(exit_code);
-        match &res {
-            StopResult::Issued(_) => {
-                tracing::info!("Stop issued successfully. Starting teardown procedures");
-                SharedState::start_teardown(&self.shared);
-                //self.teardown();
-            },
-            StopResult::IssuedPending(_) => {
-                tracing::info!("Stop is pending and will be issued upon finishing startup");
-            },
-            StopResult::AlreadyIssued(StopCommand { exit_code }) => {
-                tracing::info!("Already stopping (exit code: {exit_code}) - request ignored.");
-            },
-        }
-        res
-    }
-
-    /// If a stop command has been issued, returns the inner exit code - otherwise `None`
-    #[must_use]
-    pub fn exit_code(&self) -> Option<u8> {
-        if let Some(Command::Stop(cmd)) = self.issued_command() {
-            Some(cmd.exit_code)
-        } else {
-            None
-        }
-    }
+    // !- Teardown callbacks
 
     /// An optional callback/closure fn that is called once teardown completes.
     ///
@@ -318,7 +337,7 @@ impl ShutdownManager {
     /// # Behavior
     ///
     /// If the teardown was triggered with a stop command, the application
-    /// will terminate ~immmediatrly after the provided fn returns.
+    /// will terminate ~immediately after the provided fn returns.
     ///
     /// Otherwise - for a reload command - app startup should begin ~immediately after.
     ///
@@ -386,6 +405,11 @@ impl ShutdownManager {
     }
 }
 
+impl Default for ShutdownManager {
+    fn default() -> Self {
+        Self::init(ShutdownConfig::default())
+    }
+}
 impl From<LockingSharedState> for ShutdownManager {
     fn from(shared: LockingSharedState) -> Self {
         Self {
