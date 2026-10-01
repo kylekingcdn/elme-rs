@@ -225,12 +225,12 @@
 //!
 //! ### Example output
 //!
-//! <pre> [0/1] <span style="color:green;">⠠</span> Busy worker
-//!  [0/4] <span style="color:green;">⠠</span> Delegated worker
+//! <pre> [0/1] <span style="color:green;">⠁</span> Busy worker
+//!  [0/4] <span style="color:green;">⠤</span> Delegated worker
 //!  [1/1] <span style="color:green;">✔</span> Dispatcher
 //!  [1/1] <span style="color:green;">✔</span> Intermittent worker
-//!  [0/1] <span style="color:green;">⠠</span> One shot worker
-//!  [0/1] <span style="color:green;">⠠</span> Worker manager
+//!  [0/1] <span style="color:green;">⠒</span> One shot worker
+//!  [0/1] <span style="color:green;">⠲</span> Worker manager
 //!  <span style="font-weight:bold;">Progress</span> [<span style="color:green;">#######</span ><span style="color:grey;">----------------------</span>][ 2/9 ]
 //!  <span style="font-weight:bold;">Time-out</span> [<span style="color:#FCBC09;">===============></span ><span style="color:grey;">-------------</span>][-0:07]</pre>
 //!
