@@ -44,15 +44,15 @@ impl LifecycleStage {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RunState {
-    Starting,
+    FirstStart,
     Ready,
     Reloading,
     Stopping,
 }
 impl RunState {
     #[must_use]
-    pub fn is_starting(&self) -> bool {
-        *self == Self::Starting
+    pub fn is_first_start(&self) -> bool {
+        *self == Self::FirstStart
     }
     #[must_use]
     pub fn is_ready(&self) -> bool {
@@ -244,7 +244,7 @@ impl SharedState {
                 if self.startup_done() {
                     RunState::Ready
                 } else {
-                    RunState::Starting
+                    RunState::FirstStart
                 }
             },
             Some(issued) => {
