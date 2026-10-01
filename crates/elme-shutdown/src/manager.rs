@@ -142,6 +142,10 @@ impl ShutdownManager {
     /// This is identical to:
     ///
     /// ```
+    /// # use elme_shutdown::{ProgressWriter, ShutdownConfig, ShutdownManager};
+    /// #
+    /// # let config = ShutdownConfig::builder().handle_signals(false).build();
+    /// # let shutdown_manager = ShutdownManager::init(config);
     /// let writer = ProgressWriter::new(shutdown_manager.progress_bars());
     /// ```
     ///
