@@ -67,7 +67,6 @@ impl SignalHandler {
             );
         });
     }
-    #[allow(clippy::if_not_else)]
     async fn receive_signals(&self, mut rx: mpsc::Receiver<SignalType>) {
         while let Some(kind) = rx.recv().await {
             match kind {

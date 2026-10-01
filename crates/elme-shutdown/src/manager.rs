@@ -1,5 +1,3 @@
-#![allow(clippy::missing_panics_doc)]
-
 use crate::{
     command::{Command, CommandResult, ReloadResult, StopCommand, StopResult},
     config::ShutdownConfig,
@@ -18,7 +16,7 @@ use crate::{
     teardown::stats::{TeardownStats, TeardownTimeoutStats},
 };
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 // !- Manager
 
@@ -123,7 +121,7 @@ impl ShutdownManager {
     /// Options used to initialize `ShutdownManager`
     #[must_use]
     pub fn options(&self) -> ShutdownConfig {
-        self.shared.lock().unwrap().options()
+        self.shared_lock().options()
     }
 
     /// Returns the underlying [`indicatif::MultiProgress`]
@@ -133,7 +131,7 @@ impl ShutdownManager {
     #[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
     #[must_use]
     pub fn progress_bars(&self) -> indicatif::MultiProgress {
-        self.shared.lock().unwrap().hook_deps().progress_bars.clone()
+        self.shared_lock().hook_deps().progress_bars.clone()
     }
 
     /// Creates a new [`ProgressWriter`](crate::progress::writer::ProgressWriter)
@@ -164,11 +162,16 @@ impl ShutdownManager {
         crate::progress::writer::ProgressWriter::new(mp)
     }
 
+    /// used to centralize `missing_panic_docs` warnings without blanket allow
+    pub(crate) fn shared_lock(&self) -> MutexGuard<'_, SharedState> {
+        self.shared.lock().unwrap()
+    }
+
     // !- State management
 
     #[must_use]
     pub fn app_should_start(&self) -> bool {
-        self.shared.lock().unwrap().app_should_start()
+        self.shared_lock().app_should_start()
     }
     pub fn inform_starting(&self) -> Result<(), InformStartingError> {
         SharedState::inform_starting(&self.shared)
@@ -180,7 +183,7 @@ impl ShutdownManager {
     #[must_use]
     pub fn stop(&self, exit_code: u8) -> StopResult {
         tracing::info!(exit_code, "Received request to stop (exit code: {exit_code})");
-        let res = self.shared.lock().unwrap().stop(exit_code);
+        let res = self.shared_lock().stop(exit_code);
         match &res {
             StopResult::Issued(_) => {
                 tracing::info!("Stop issued successfully. Starting teardown procedures");
@@ -199,7 +202,7 @@ impl ShutdownManager {
     #[must_use]
     pub fn reload(&self) -> ReloadResult {
         tracing::info!("Received request to reload");
-        let res = self.shared.lock().unwrap().reload();
+        let res = self.shared_lock().reload();
         match &res {
             ReloadResult::Issued => {
                 tracing::info!("Reload issued successfully. Starting teardown procedures");
@@ -246,7 +249,7 @@ impl ShutdownManager {
     /// and teardown will begin.
     #[must_use]
     pub fn issued_command(&self) -> Option<Command> {
-        self.shared.lock().unwrap().issued_command()
+        self.shared_lock().issued_command()
     }
 
     /// The pending [`Command`].
@@ -260,17 +263,17 @@ impl ShutdownManager {
     /// and teardown will begin.
     #[must_use]
     pub fn pending_command(&self) -> Option<Command> {
-        self.shared.lock().unwrap().pending_command()
+        self.shared_lock().pending_command()
     }
 
     /// Current stage of app lifecycle
     #[must_use]
     pub fn lifecycle_stage(&self) -> LifecycleStage {
-        self.shared.lock().unwrap().lifecycle_stage()
+        self.shared_lock().lifecycle_stage()
     }
     #[must_use]
     pub fn run_state(&self) -> RunState {
-        self.shared.lock().unwrap().run_state()
+        self.shared_lock().run_state()
     }
 
     // !- Task management
@@ -281,38 +284,36 @@ impl ShutdownManager {
 
     #[must_use]
     pub fn task_list(&self) -> TrackedTaskList {
-        let mut task_list = self.shared.lock().unwrap().task_registry().as_task_list().into_active_filtered();
+        let mut task_list = self.shared_lock().task_registry().as_task_list().into_active_filtered();
         task_list.sort_tasks();
         task_list
     }
     #[must_use]
     pub fn active_task_count(&self) -> usize {
-        self.shared.lock().unwrap().task_registry().active_task_count()
+        self.shared_lock().task_registry().active_task_count()
     }
     #[must_use]
     pub fn has_active_tasks(&self) -> bool {
-        !self.shared.lock().unwrap().task_registry().has_active_tasks()
+        !self.shared_lock().task_registry().has_active_tasks()
     }
 
     #[must_use]
     pub fn total_instance_count(&self) -> InstanceCount {
-        self.shared.lock().unwrap().task_registry().total_instance_count()
+        self.shared_lock().task_registry().total_instance_count()
     }
     #[must_use]
     pub fn task_instance_count(&self, task_name: &'static str) -> InstanceCount {
-        self.shared.lock().unwrap().task_registry().task_instance_count(task_name)
+        self.shared_lock().task_registry().task_instance_count(task_name)
     }
 
     // !- Teardown futures
 
-    #[allow(clippy::missing_panics_doc)]
     pub fn wait_for_teardown_start(&self) -> impl Future<Output=()> {
-        let token = self.shared.lock().unwrap().teardown_start_token();
+        let token = self.shared_lock().teardown_start_token();
         token.cancelled_owned()
     }
-    #[allow(clippy::missing_panics_doc)]
     pub fn wait_for_teardown_done(&self) -> impl Future<Output=()> {
-        let token = self.shared.lock().unwrap().teardown_done_token();
+        let token = self.shared_lock().teardown_done_token();
         token.cancelled_owned()
     }
 
@@ -350,17 +351,18 @@ impl ShutdownManager {
     /// - [`unset_on_teardown()`](Self::unset_on_teardown)
     /// - [`ShutdownConfig::log_teardown_stats`]
     /// - [`on_timeout()`](Self::on_timeout)
-    #[allow(clippy::must_use_candidate)]
-    pub fn on_teardown(&self, f: impl Fn(&TeardownStats) + Send + Sync + 'static) {
-        self.shared.lock().unwrap().on_teardown(f);
+    pub fn on_teardown(&self, f: impl Fn(&TeardownStats) + Send + Sync + 'static) -> &Self {
+        self.shared_lock().on_teardown(f);
+        self
     }
 
     /// Removes the callback assigned via [`on_teardown()`](Self::on_teardown)
     ///
     /// Supports builder-style method chaining (`mut` is not required).
     #[allow(clippy::must_use_candidate)]
-    pub fn unset_on_teardown(&self) {
-        self.shared.lock().unwrap().unset_on_teardown();
+    pub fn unset_on_teardown(&self) -> &Self {
+        self.shared_lock().unset_on_teardown();
+        self
     }
 
     /// An optional callback/closure fn that is called if the teardown timeout is reached.
@@ -393,9 +395,8 @@ impl ShutdownManager {
     /// - [`unset_on_timeout()`](Self::unset_on_timeout)
     /// - [`ShutdownConfig::log_timeout_stats`]
     /// - [`on_teardown()`](Self::on_teardown)
-    #[allow(clippy::must_use_candidate)]
     pub fn on_timeout(&self, f: impl Fn(&TeardownTimeoutStats) + Send + Sync + 'static) -> &Self {
-        self.shared.lock().unwrap().on_timeout(f);
+        self.shared_lock().on_timeout(f);
         self
     }
 
@@ -404,7 +405,7 @@ impl ShutdownManager {
     /// Supports builder-style method chaining (`mut` is not required).
     #[allow(clippy::must_use_candidate)]
     pub fn unset_on_timeout(&self) -> &Self {
-        self.shared.lock().unwrap().unset_on_timeout();
+        self.shared_lock().unset_on_timeout();
         self
     }
 }

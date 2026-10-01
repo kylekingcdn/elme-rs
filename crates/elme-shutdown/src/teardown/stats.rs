@@ -23,7 +23,6 @@ pub(crate) struct CommonStats {
 }
 impl CommonStats {
     // a panic is only possible if finished_at < started_at
-    #[allow(clippy::missing_panics_doc)]
     #[must_use]
     fn duration(&self) -> Duration {
         let delta = self.finished_at - self.started_at;

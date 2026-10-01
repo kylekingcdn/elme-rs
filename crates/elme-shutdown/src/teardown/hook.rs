@@ -79,7 +79,6 @@ pub(crate) struct HookDispatcher {
     #[cfg(feature = "progress")]
     progress: TeardownProgressHook,
 }
-#[allow(unused, clippy::unused_self, clippy::needless_pass_by_value)]
 impl HookDispatcher {
     pub(crate) fn new(
         transition_map: &TransitioningTaskMap,

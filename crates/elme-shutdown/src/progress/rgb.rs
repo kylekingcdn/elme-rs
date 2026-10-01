@@ -28,7 +28,12 @@ impl Rgb {
 pub(crate) trait Transition {
     fn res(self, progress: u64, total: u64) -> Rgb;
 
-    #[allow(clippy::pedantic)]
+    #[allow(
+        clippy::cast_lossless,
+        clippy::cast_possible_truncation,
+        clippy::cast_precision_loss,
+        clippy::cast_sign_loss,
+    )]
     fn channel_pos(start: u8, end: u8, progress: u64, total: u64) -> u8 {
         let range = i16::from(end) - i16::from(start);
         let factor = (progress as f64)/(total as f64);

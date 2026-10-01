@@ -28,11 +28,8 @@ static GREEN:  Rgb = Rgb( 26, 188, 156);
 static YELLOW: Rgb = Rgb(252, 188,   9);
 static RED:    Rgb = Rgb(244,  64,  64);
 
-#[allow(dead_code)]
 static ANSI_GREEN: &str = "\x1b[32m";
-#[allow(dead_code)]
 static ANSI_YELLOW: &str = "\x1b[33m";
-#[allow(dead_code)]
 static ANSI_RED: &str = "\x1b[31m";
 
 static GREEN_TO_RED: LazyLock<MidpointTransition> = LazyLock::new(||
@@ -46,9 +43,10 @@ static TICK_FACTOR: u64 = 50;
 /// Ensures lifetime of spawned progress bars is identical
 ///
 /// Otherwise some bars will disappear after finish, pending insert order
-#[allow(dead_code, clippy::struct_field_names)]
 struct Bars {
+    #[allow(dead_code)]
     mp: MultiProgress,
+    #[allow(clippy::struct_field_names)]
     task_bars: HashMap<&'static str, ProgressBar>,
     instance_bar: ProgressBar,
     timeout_bar: ProgressBar,
