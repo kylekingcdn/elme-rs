@@ -216,7 +216,7 @@ pub struct WorkerManager {
 
 }
 impl WorkerManager {
-    // for dispatcher -> deletegated worker channel
+    // for dispatcher -> delegated worker channel
     const WORKER_COUNT: usize = 4;
     const CHANNEL_SIZE: usize = 10;
 

@@ -6,10 +6,6 @@
 
 An `elme` module providing graceful shutdown with a familiar interface (and a ton of QOL).
 
-> **Warning**
->
-> Full documentation will be published soon
-
 [**crates.io**](https://crates.io/crates/elme-shutdown)
 |
 [**Docs**](https://docs.rs/elme-shutdown/latest)
@@ -20,24 +16,26 @@ An `elme` module providing graceful shutdown with a familiar interface (and a to
 
 Provides common graceful shutdown features, such as:
 
-- Signal + ctrl+c handling
+- Handling of signals (incl. `ctrl`+`c`)
 - Programmatic shutdown trigger
 - Futures for awaiting shutdown start or completion
-- Graceful shutdown tomeout
+- Graceful shutdown timeout
 
 And additional quality-of-life features, such as:
 
 - Live-reload support via a one-liner (w/ `SIGHUP` trigger)
 - Zero-conf task & timeout progress bars (`progress` feature)
-- Task/worker identification, allowing for dead-simple diagnostics & monitoring
+- Task/worker identification, allowing for OOTB diagnostics & monitoring
 - Teardown summary reports, including breakdown of stopped/timed-out tasks
 - Teardown/timeout hooks for custom reporting callbacks
 - Exposes app lifecycle states
-- Supports builder + runtime configuration (simultaneously)
+- Simultaneous support for builder + runtime configuration
 
-## Demo
+## High-level overview
 
-> coming soon
+The library module docs contain a succinct briefing of core concepts.
+
+For first-time users or those seeking a quick overview, [this is the place to start](https://docs.rs/elme-shutdown/latest/elme_shutdown/#overview
 
 ## Examples
 
@@ -45,7 +43,7 @@ See the [`examples`](https://github.com/kylekingcdn/elme-rs/tree/main/crates/elm
 
 ## Feature flags
 
-Features for the corresponding crate (`elme`, `elme-shutdown`) are listed below.
+Features for the corresponding crates (`elme`, `elme-shutdown`) are listed below.
 
 **`elme`** | **`elme-shutdown`** | **Description**
 -|-|-

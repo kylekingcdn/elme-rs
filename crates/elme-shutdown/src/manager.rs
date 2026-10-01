@@ -22,6 +22,20 @@ use std::sync::{Arc, Mutex};
 
 // !- Manager
 
+/// Primary management interface for `elme-shutdown`.
+///
+/// # Sharing manager access
+/// 
+/// `ShutdownManager` can be cloned for thread-safe, shared access.
+/// Cloning is cheap as all internal data is wrapped in a single `Arc`.
+///
+/// ## Access via `TaskHandle`
+///
+/// You can also access the `ShutdownManager` instance from the [`manager()`](TaskHandle::manager) method provided by a [`TaskHandle`].
+///
+/// Resolving a manager from a `TaskHandle` makes it simple to perform actions from workers (such as triggering a shutdown), without polluting your entite call tree with `ShutdownManager` params.
+///
+/// There is no additional overhead incurred by accessing a manager using a task handle. Internally, it is identical to calling `clone()` on a manager.
 #[derive(Clone)]
 pub struct ShutdownManager {
     shared: LockingSharedState,
@@ -34,27 +48,68 @@ impl ShutdownManager {
         #[cfg(feature = "progress")]
         mp: indicatif::MultiProgress,
     ) -> Self {
+        // init shared state
         let state = SharedState::new(
             options,
             #[cfg(feature = "progress")]
             mp,
         );
+        let shared = Arc::new(Mutex::new(state));
+        
+        // register global signal handler
+        if options.handle_signals() {
+            SignalHandler::new_initialized(shared.clone());
+        }
+        
         Self {
-            shared: Arc::new(Mutex::new(state)),
+            shared,
         }
     }
+    
+    /// Initializes `elme-shutdown` with the provided options.
+    ///
+    /// This **must not** be called more than once throughout the lifetime of your application. 
+    ///
+    /// If [`ShutdownConfig::handle_signals`](crate::ShutdownConfig::handle_signals) is enabled, this will additionally spawn the signal monitor.
+    ///
+    /// # Thread-safety
+    ///
+    /// All inner `ShutdownManager` data is wrapped in an `Arc`, and thus can be cheaply
+    /// cloned and used in async contexts.
     #[must_use]
     pub fn init(options: ShutdownConfig) -> Self {
-        let manager = Self::new(
+        Self::new(
             options,
             #[cfg(feature = "progress")]
             indicatif::MultiProgress::default(),
-        );
-        if options.handle_signals() {
-            SignalHandler::new_initialized(manager.shared.clone());
-        }
-        manager
+        )
     }
+    
+    /// Initializes `elme-shutdown` with options and a user-provided [`indicatif::MultiProgress`].
+    ///
+    /// The standard [`init()`](ShutdownManager::init) fn will construct a new `MultiProgress` instance (if the `progress` feature is enabled).
+    ///
+    /// If your app is already serving progress bars via [`indicatif`], you can provide
+    /// your existing `MultiProgress` to (hopefully) retain dual-support. 
+    ///
+    /// ---
+    ///
+    /// # Using `tracing-subscriber` `Writer`'s
+    ///
+    /// Multiple [`tracing-subscriber`](::tracing_subscriber) `Writer` layers made for use with [`indicatif`](::indicatif) should not
+    /// be installed simultaneously, this includes:
+    /// - `elme_shutdown::ProgressWriter` (gated by `progress-writer`)
+    /// - `tracing-indicatif::IndicatifWriter`
+    ///
+    /// Only a single `indicatif` writer should be used at a given time.
+    ///
+    /// ---
+    ///
+    /// # Inner `MultiProgress` access
+    ///
+    /// The underlying [`MultiProgress`](indicatif::MultiProgress) can be accessed via [`progress_bars()`](ShutdownManager::progress_bars).
+    ///
+    /// This is supported for both the [`init()`](ShutdownManager::init) and [`init_with_multi_progress()`](ShutdownManager::init_with_multi_progress) fns.
     #[cfg(feature = "progress")]
     #[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
     #[must_use]
@@ -75,12 +130,26 @@ impl ShutdownManager {
         self.shared.lock().unwrap().options()
     }
 
+    /// Returns the underlying [`indicatif::MultiProgress`]
+    ///
+    /// Can be used to provide additional support for progress bars
     #[cfg(feature = "progress")]
     #[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
     #[must_use]
     pub fn progress_bars(&self) -> indicatif::MultiProgress {
         self.shared.lock().unwrap().hook_deps().progress_bars.clone()
     }
+    
+    /// Creates a new [`ProgressWriter`](crate::progress::writer::ProgressWriter)
+    /// for use with `tracing-subscriber`.
+    ///
+    /// This is identical to:
+    ///
+    /// ```
+    /// let writer = ProgressWriter::new(shutdown_manager.progress_bars());
+    /// ```
+    ///
+    /// See the [`ProgressWriter`](crate::progress::writer::ProgressWriter) docs for more info.
     #[cfg(all(
         feature = "progress",
         feature = "progress-writer"
