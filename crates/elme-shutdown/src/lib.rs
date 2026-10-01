@@ -314,7 +314,7 @@ mod teardown;
 #[cfg(feature = "progress")]
 mod progress;
 
-pub use config::{ShutdownConfig, ShutdownOverrideConfig};
+pub use config::{ShutdownConfig, ShutdownConfigBuilder, ShutdownOverrideConfig};
 pub use manager::ShutdownManager;
 pub use state::{LifecycleStage, RunState};
 pub use task::TaskHandle;
