@@ -414,7 +414,7 @@ impl SharedState {
 
     pub(crate) fn reload(&mut self) -> ReloadResult {
         tracing::trace!("Attempting to issue reload command");
-        match self.loaded_command() {
+        match self.loaded_command() { // !- FIXME: remove, handle explicitly
             None => {
                 let cmd = Command::Reload;
                 if self.starting() {
@@ -428,13 +428,14 @@ impl SharedState {
 
                 }
             },
+            // !- FIXME: double reload should store as pending
             Some(Command::Reload) => ReloadResult::AlreadyIssued,
             Some(Command::Stop(stop_cmd)) => ReloadResult::Stopping(stop_cmd),
         }
     }
     pub(crate) fn stop(&mut self, exit_code: u8) -> StopResult {
         tracing::trace!(exit_code, "Attempting to issue stop command");
-        match self.loaded_command() {
+        match self.loaded_command() { // !- FIXME: remove, handle explicitly
             None |
             Some(Command::Reload) => {
                 let cmd = StopCommand { exit_code };

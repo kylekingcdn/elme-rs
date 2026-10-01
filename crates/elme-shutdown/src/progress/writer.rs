@@ -1,6 +1,8 @@
 // adapted from emersonford's excellent work on tracing-indicatif:
 // https://github.com/emersonford/tracing-indicatif/blob/main/src/writer.rs
 
+// !- FIXME: breaks stdout
+
 use indicatif::MultiProgress;
 use tracing_subscriber::fmt::MakeWriter;
 use std::io;
