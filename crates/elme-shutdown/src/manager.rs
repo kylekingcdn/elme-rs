@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex};
 /// Primary management interface for `elme-shutdown`.
 ///
 /// # Sharing manager access
-/// 
+///
 /// `ShutdownManager` can be cloned for thread-safe, shared access.
 /// Cloning is cheap as all internal data is wrapped in a single `Arc`.
 ///
@@ -55,20 +55,20 @@ impl ShutdownManager {
             mp,
         );
         let shared = Arc::new(Mutex::new(state));
-        
+
         // register global signal handler
         if options.handle_signals() {
             SignalHandler::new_initialized(shared.clone());
         }
-        
+
         Self {
             shared,
         }
     }
-    
+
     /// Initializes `elme-shutdown` with the provided options.
     ///
-    /// This **must not** be called more than once throughout the lifetime of your application. 
+    /// This **must not** be called more than once throughout the lifetime of your application.
     ///
     /// If [`ShutdownConfig::handle_signals`](crate::ShutdownConfig::handle_signals) is enabled, this will additionally spawn the signal monitor.
     ///
@@ -84,13 +84,13 @@ impl ShutdownManager {
             indicatif::MultiProgress::default(),
         )
     }
-    
+
     /// Initializes `elme-shutdown` with options and a user-provided [`indicatif::MultiProgress`].
     ///
     /// The standard [`init()`](ShutdownManager::init) fn will construct a new `MultiProgress` instance (if the `progress` feature is enabled).
     ///
     /// If your app is already serving progress bars via [`indicatif`], you can provide
-    /// your existing `MultiProgress` to (hopefully) retain dual-support. 
+    /// your existing `MultiProgress` to (hopefully) retain dual-support.
     ///
     /// ---
     ///
@@ -135,7 +135,7 @@ impl ShutdownManager {
     pub fn progress_bars(&self) -> indicatif::MultiProgress {
         self.shared.lock().unwrap().hook_deps().progress_bars.clone()
     }
-    
+
     /// Creates a new [`ProgressWriter`](crate::progress::writer::ProgressWriter)
     /// for use with `tracing-subscriber`.
     ///
@@ -244,7 +244,7 @@ impl ShutdownManager {
     pub fn issued_command(&self) -> Option<Command> {
         self.shared.lock().unwrap().issued_command()
     }
-    
+
     /// The pending [`Command`].
     ///
     /// # Issued vs. Pending
@@ -268,7 +268,7 @@ impl ShutdownManager {
     pub fn run_state(&self) -> RunState {
         self.shared.lock().unwrap().run_state()
     }
-    
+
     // !- Task management
 
     pub fn register_task(&self, task_name: &'static str) -> Result<TaskHandle, RegisterError> {
