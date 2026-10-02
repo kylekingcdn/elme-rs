@@ -80,6 +80,7 @@ pub(crate) struct HookDispatcher {
     progress: TeardownProgressHook,
 }
 impl HookDispatcher {
+    #[allow(clippy::needless_pass_by_value, unused_variables)] // feature-dependent
     pub(crate) fn new(
         transition_map: &TransitioningTaskMap,
         started_at: DateTime<Utc>,
