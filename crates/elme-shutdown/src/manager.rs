@@ -85,7 +85,7 @@ impl ShutdownManager {
 
     /// Initializes `elme-shutdown` with options and a user-provided [`indicatif::MultiProgress`].
     ///
-    /// The standard [`init()`](ShutdownManager::init) fn will construct a new `MultiProgress` instance (if the `progress` feature is enabled).
+    /// The standard [`init()`](Self::init) fn will construct a new `MultiProgress` instance (if the `progress` feature is enabled).
     ///
     /// If your app is already serving progress bars via [`indicatif`], you can provide
     /// your existing `MultiProgress` to (hopefully) retain dual-support.
@@ -105,9 +105,9 @@ impl ShutdownManager {
     ///
     /// # Inner `MultiProgress` access
     ///
-    /// The underlying [`MultiProgress`](indicatif::MultiProgress) can be accessed via [`progress_bars()`](ShutdownManager::progress_bars).
+    /// The underlying [`MultiProgress`](indicatif::MultiProgress) can be accessed via [`progress_bars()`](Self::progress_bars).
     ///
-    /// This is supported for both the [`init()`](ShutdownManager::init) and [`init_with_multi_progress()`](ShutdownManager::init_with_multi_progress) fns.
+    /// This is supported for both the [`init()`](Self::init) and [`init_with_multi_progress()`](Self::init_with_multi_progress) fns.
     #[cfg(feature = "progress")]
     #[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
     #[must_use]
@@ -126,7 +126,7 @@ impl ShutdownManager {
 
     /// Returns the underlying [`indicatif::MultiProgress`]
     ///
-    /// Can be used to provide additional support for progress bars
+    /// Can be used to add support for additional progress bars while avoiding output conflicts.
     #[cfg(feature = "progress")]
     #[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
     #[must_use]
@@ -169,13 +169,81 @@ impl ShutdownManager {
 
     // !- State management
 
+    /// Whether or not the application should start & run.
+    ///
+    /// This will always return true, so long as [`issued_command`](Self::issued_command) is not `Stop`.
+    ///
+    /// Once this does return `false`, it is guaranteed to not return `true` for the remainder
+    /// of the application's lifetime - as no other commands can be issued after `Stop`.
     #[must_use]
     pub fn app_should_start(&self) -> bool {
         self.shared_lock().app_should_start()
     }
+
+    /// Instructs the `ShutdownManager` that startup procedures are underway.
+    ///
+    /// # Usage
+    ///
+    #[doc = include_str!("../doc/main_fn.md")]
+    ///
+    /// # Guarantees
+    ///
+    /// If a command (`Stop`/`Reload`) is given during startup, it will **not** be issued until
+    /// startup is completed. The command will be stored as the [`pending_command`](Self::pending_command), and will not be processed until `inform_started` is called.
+    ///
+    /// This guarantee is in place to help avoid state de-sync / mid-startup uncertainty.
+    ///
+    /// This guarantee further asserts that teardown will never begin while startup is in progress.
+    ///
+    /// This works in harmony with the task registration guarantees:
+    /// - `register_task()` will always fail during teardown
+    /// - `register_task()` never fail outside teardown). It can therefore be deduced that registration will never fail during startup.
+    ///
+    /// Because of this added safety-net, it's highly recommended that any workers have task registration peformed during startup. This implementation sees `TaskHandle`s stored as member fields of the worker, as opposed to passing a `TaskHandle` into the worker's `run()` method.
+    /// <!-- TODO: does this tenet require that worker run() fns take ownership of Self? -->
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`InformStartingError`] if a transition to `Starting` is not currently valid.
+    ///
+    /// The restrictions in place, along with the associated error variants, are:
+    ///
+    /// - If the application is already in the startup stage (`inform_starting()` callled > 1x)
+    ///   - Returns [`InformStartingError::AlreadyStarting`]
+    ///   - This does not include the implicit state encountered immediately at launch. No custom
+    ///     logic is required for first launch.
+    ///
+    /// - If the current state is not eligible for transition to `Starting`
+    ///   - Returns [`InformStartingError::InvalidState`]
+    ///   - The only valid transitions are:
+    ///     1. The application is in its first start-up sequence.
+    ///        - This is the first state change that must occur at launch. No other transitions are
+    ///          supported
+    ///     2. From teardown
+    ///        - Teardown needs to have completed successfully
+    ///
+    /// - If teardown has finished successfully, but the command is not `Reload`
+    ///   - Returns [`InformStartingError::SubsequentStartNonReload`]
+    ///     - Startup should never be re-attempted after `Stop` is issued.
+    ///     - The [`pending_command`](Self::pending_command) is not considered here.
     pub fn inform_starting(&self) -> Result<(), InformStartingError> {
         SharedState::inform_starting(&self.shared)
     }
+
+    /// Instructs the `ShutdownManager` that startup has finished and the application is ready.
+    ///
+    /// # Usage
+    ///
+    #[doc = include_str!("../doc/main_fn.md")]
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`InformStartedError`] if a transition to `Running` is not currently valid.
+    ///
+    /// The restrictions in place, along with the associated error variants, are:
+    /// - If the application is not currently in the `Starting` stage (via `inform_starting()`)
+    ///   - Returns [`InformStartedError::NotStarting`]
+    ///   - `inform_started()` must be called after [`inform_starting()`](Self::inform_starting)
     pub fn inform_started(&self) -> Result<(), InformStartedError> {
         SharedState::inform_started(&self.shared)
     }
@@ -243,7 +311,7 @@ impl ShutdownManager {
     /// # Issued vs. Pending
     ///
     /// If a command is issued while the application is in it's startup stage, it will be
-    /// stored to [`pending_command`](ShutdownManager::pending_command) until startup completes ([`inform_started`](ShutdownManager::inform_started) is called).
+    /// stored to [`pending_command`](Self::pending_command) until startup completes ([`inform_started`](Self::inform_started) is called).
     ///
     /// Once startup completes, the pending command will replace the issued command (if any),
     /// and teardown will begin.
@@ -257,7 +325,7 @@ impl ShutdownManager {
     /// # Issued vs. Pending
     ///
     /// If a command is issued while the application is in it's startup stage, it will be
-    /// stored to [`pending_command`](ShutdownManager::pending_command) until startup completes ([`inform_started`](ShutdownManager::inform_started) is called).
+    /// stored to [`pending_command`](Self::pending_command) until startup completes ([`inform_started`](Self::inform_started) is called).
     ///
     /// Once startup completes, the pending command will replace the issued command (if any),
     /// and teardown will begin.

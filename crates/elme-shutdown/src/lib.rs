@@ -151,37 +151,6 @@
 //!
 //! This behaviour can be disabled through [`ShutdownConfig::terminate_on_second_signal`].
 //!
-//! <!--
-//! # Usage
-//!
-//! ## Typical `main()` loop
-//!
-//! A standard `main()` fn used with `elme-shutdown` contains something like:
-//!
-//! ```rust
-//! // one-time/global init here
-//! // ...
-//!
-//! // init + run loop
-//! while shutdown_mgr.app_should_start() { // handles reload support
-//!     // – startup
-//!     shutdown_mgr.inform_starting()?;
-//!     let api = Api::new(shutdown_mgr.register_task("API")?);
-//!     let notifier = Notifier::new(shutdown_mgr.register_task("Notifier")?);
-//!
-//!     // – running
-//!     shutdown_mgr.inform_started()?;
-//!     tokio::spawn(async move { notifier.run().await; });
-//!     api.run().await?;
-//!
-//!     // - teardown
-//!     shutdown_mgr.wait_for_teardown_done().await; // wait for tasks to end gracefully
-//! }
-//!
-//! Ok(shutdown_mgr.exit_code().unwrap_or(0).into())
-//! ```
-//! -->
-//!
 //! ## Teardown futures
 //!
 //! Polling a teardown future is an efficient strategy for reacting to teardown start/end events.
@@ -316,7 +285,7 @@ mod progress;
 
 pub use config::{ShutdownConfig, ShutdownConfigBuilder, ShutdownOverrideConfig};
 pub use manager::ShutdownManager;
-pub use state::{LifecycleStage, RunState};
+pub use state::{InformStartingError, InformStartedError, LifecycleStage, RunState};
 pub use task::TaskHandle;
 pub use teardown::{
     stats::{TeardownStats, TeardownTimeoutStats},
