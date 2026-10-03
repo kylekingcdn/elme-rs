@@ -315,7 +315,7 @@ dependencies = [
 
 [[package]]
 name = "elme"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "elme-config",
  "elme-db",
@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "elme-config"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "config",
  "dotenvy",
@@ -336,7 +336,7 @@ dependencies = [
 
 [[package]]
 name = "elme-db"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "lib-conf-ports",
  "serde",
