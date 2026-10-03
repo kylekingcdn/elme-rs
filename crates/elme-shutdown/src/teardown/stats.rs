@@ -223,49 +223,75 @@ struct TaskListParams {
 
 // !- Teardown stats
 
+/// Provides successful teardown metrics
+///
+/// Used internally to provide teardown reports.
+///
+/// ## Customizing output
+///
+/// Report output can be customized by:
+///
+/// 1. Disabling automatic output using
+///    [`ShutdownConfig::log_teardown_stats`](crate::ShutdownConfig::log_teardown_stats)
+/// 1. Providing a custom callback with
+///    [`ShutdownManager::on_teardown`](crate::ShutdownManager::on_teardown).
 #[derive(Debug, Clone)]
 pub struct TeardownStats {
     common: CommonStats,
 }
 impl TeardownStats {
+    /// The date and time that teardown began
     #[must_use]
     pub fn started_at(&self) -> DateTime<Utc> {
         self.common.started_at
     }
+    /// The date and time that teardown finished
     #[must_use]
     pub fn finished_at(&self) -> DateTime<Utc> {
         self.common.finished_at
     }
+    /// The configured time-out duration
     #[must_use]
     pub fn timeout(&self) -> Duration {
         self.common.timeout
     }
+    /// The configured time-out duration, as a human-readable `String`
     #[must_use]
     pub fn timeout_text(&self) -> String {
         self.common.timeout_text()
     }
+    /// The teardown duration
+    ///
+    /// Derived by taking
+    /// <code>[`finished_at`](Self::finished_at) - [`started_at`](Self::started_at)</code>
     #[must_use]
     pub fn duration(&self) -> Duration {
         self.common.duration()
     }
+    /// The teardown duration, as a human-readable `String`
     #[must_use]
     pub fn duration_text(&self) -> String {
         self.common.duration_text()
     }
+
+    /// Total number of tasks (distinct task names) that were active when teardown began
     #[must_use]
     pub fn total_tasks(&self) -> usize {
         self.common.tasks.task_total()
     }
+    /// Total number of task instances present when teardown began
     #[must_use]
     pub fn total_instances(&self) -> usize {
         self.common.tasks.instances_total().into()
     }
+
+    /// The default provided report text
     #[must_use]
     pub fn report_text(&self) -> String {
         self.common.report_text()
     }
 
-    /// Returns the list of tasks with the number of instances transitioned (excludes tasks with 0 instances transitioned)
+    /// Returns the list of tasks with the number of instances transitioned
     #[must_use]
     pub fn tasks(&self) -> TrackedTaskList {
         self.common.tasks.as_transitioned_tasks()
@@ -279,51 +305,82 @@ impl From<CommonStats> for TeardownStats {
 
 // !- Teardown timeout stats
 
+/// Provides timed-out teardown metrics
+///
+/// Used internally to provide timeout reports.
+///
+/// ## Customizing output
+///
+/// Report output can be customized by:
+///
+/// 1. Disabling automatic output using
+///    [`ShutdownConfig::log_timeout_stats`](crate::ShutdownConfig::log_timeout_stats)
+/// 1. Providing a custom callback with
+///    [`ShutdownManager::on_timeout`](crate::ShutdownManager::on_timeout).
 #[derive(Debug, Clone)]
 pub struct TeardownTimeoutStats {
     common: CommonStats,
 }
 impl TeardownTimeoutStats {
+    /// The date and time that teardown began
     #[must_use]
     pub fn started_at(&self) -> DateTime<Utc> {
         self.common.started_at
     }
+    /// The date and time that teardown timed-out at
     #[must_use]
     pub fn timed_out_at(&self) -> DateTime<Utc> {
         self.common.finished_at
     }
+    /// The configured time-out duration
     #[must_use]
     pub fn timeout(&self) -> Duration {
         self.common.timeout
     }
+    /// The configured time-out duration, as a human-readable `String`
     #[must_use]
     pub fn timeout_text(&self) -> String {
         self.common.timeout_text()
     }
+    /// The teardown duration
+    ///
+    /// This should be relatively close to [`timeout()`](Self::timeout).
+    ///
+    /// Derived by taking
+    /// <code>[`timed_out_at`](Self::timed_out_at) - [`started_at`](Self::started_at)</code>
     #[must_use]
     pub fn duration(&self) -> Duration {
         self.common.duration()
     }
+    /// The teardown duration, as a human-readable `String`
     #[must_use]
     pub fn duration_text(&self) -> String {
         self.common.duration_text()
     }
+
+    /// Total number of tasks (distinct task names) that were active when teardown began
     #[must_use]
     pub fn total_tasks(&self) -> usize {
         self.common.tasks.task_total()
     }
+    /// Total number of task instances present when teardown began
     #[must_use]
     pub fn total_instances(&self) -> usize {
         self.common.tasks.instances_total().into()
     }
+    /// Total number of task instances that were gracefully stopped
     #[must_use]
     pub fn total_instances_finished(&self) -> usize {
         self.common.tasks.instances_transitioned_total().into()
     }
+    /// Total number of task instances that failed to stop gracefully before the time-out
+    /// was reached
     #[must_use]
     pub fn total_instances_timed_out(&self) -> usize {
         self.common.tasks.instances_remaining_total().into()
     }
+
+    /// The default provided report text
     #[must_use]
     pub fn report_text(&self) -> String {
         self.common.report_text()
@@ -335,12 +392,18 @@ impl TeardownTimeoutStats {
     pub fn tasks(&self) -> &TransitioningTaskList {
         &self.common.tasks
     }
-    /// Returns the list of tasks with the number of instances transitioned (excludes tasks with 0 instances transitioned)
+
+    /// Returns the list of tasks with the number of instances transitioned
+    ///
+    /// Excludes tasks with 0 instances transitioned.
     #[must_use]
     pub fn transitioned_tasks(&self) -> TrackedTaskList {
         self.common.tasks.as_transitioned_tasks()
     }
-    /// Returns the list of tasks with the number of instances remaining (excludes tasks with all instances fully transitioned)
+
+    /// Returns the list of tasks with the number of instances remaining
+    ///
+    /// Excludes tasks with all instances fully transitioned.
     #[must_use]
     pub fn untransitioned_tasks(&self) -> TrackedTaskList {
         self.common.tasks.as_untransitioned_tasks()

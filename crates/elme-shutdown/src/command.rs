@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Represents the set of supported commands
 #[derive(Debug, Copy, Clone, Eq)]
 pub enum Command {
     Stop(StopCommand),
@@ -34,6 +35,7 @@ impl From<StopCommand> for Command {
     }
 }
 
+/// The parameters required to issue a `Stop` command
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct StopCommand {
   pub exit_code: u8,
@@ -46,7 +48,7 @@ impl fmt::Display for StopCommand {
 
 // !- Result
 
-// Intentionally not a Result to force error handling (trigger kill)
+/// The possible outcomes of sending a `Stop` command.
 #[derive(Debug, Clone)]
 pub enum StopResult {
     Issued(StopCommand),
@@ -72,7 +74,7 @@ impl StopResult {
     }
 }
 
-// Intentionally not a Result to force error handling (trigger kill))
+/// The possible outcomes of sending a `Reload` command.
 #[derive(Debug, Clone)]
 pub enum ReloadResult {
     Issued,
@@ -87,9 +89,12 @@ impl ReloadResult {
     }
 }
 
+/// Represents the possible result types for each issued `Command`
 #[derive(Debug, Clone)]
 pub enum CommandResult {
+    /// Contains the type returned by [`stop()`](crate::ShutdownManager::stop)
     Stop(StopResult),
+    /// Contains the type returned by [`reload()`](crate::ShutdownManager::reload)
     Reload(ReloadResult),
 }
 impl CommandResult {

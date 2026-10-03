@@ -27,7 +27,7 @@ async fn main() -> color_eyre::Result<ExitCode> {
         .with_ansi_sanitization(false);
 
     // prevent broken tracing logs w/ elme-shutdown progress bars
-    #[cfg(feature = "progress-writer")] // gated due to tracing-subscriber dependancy
+    #[cfg(feature = "progress-writer")] // gated due to tracing-subscriber dependency
     let fmt_layer = fmt_layer.with_writer(shutdown_mgr.progress_writer());
 
     tracing_subscriber::registry()

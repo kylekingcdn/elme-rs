@@ -31,7 +31,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 ///
 /// You can also access the `ShutdownManager` instance from the [`manager()`](TaskHandle::manager) method provided by a [`TaskHandle`].
 ///
-/// Resolving a manager from a `TaskHandle` makes it simple to perform actions from workers (such as triggering a shutdown), without polluting your entite call tree with `ShutdownManager` params.
+/// Resolving a manager from a `TaskHandle` makes it simple to perform actions from workers (such as triggering a shutdown), without polluting your entire call tree with `ShutdownManager` params.
 ///
 /// There is no additional overhead incurred by accessing a manager using a task handle. Internally, it is identical to calling `clone()` on a manager.
 #[derive(Clone)]
@@ -182,25 +182,35 @@ impl ShutdownManager {
 
     /// Instructs the `ShutdownManager` that startup procedures are underway.
     ///
+    /// # Guarantees
+    ///
+    /// **A teardown will never begin during startup.**
+    /// - If a `Stop` or `Reload` command is issued during startup, it will be stored as the
+    ///   [`pending_command`](Self::pending_command).
+    /// - Pending commands are not processed until `inform_started` is called.
+    ///
+    /// This guarantee is in place to ensure startup procedures remain consistent, thus prevennting
+    /// numerous potential application-state bugs.
+    ///
+    /// Furthermore, this guarantee works in direct harmony with those provided by
+    /// [`register_task()`](Self::register_task):
+    /// - **`register_task()` will always fail during teardown**
+    /// - **`register_task()` will never fail outside of teardown**
+    ///
+    /// With that, an additional guarantee can be deduced:
+    /// - **Task registration never fails during startup**
+    ///
+    /// Because of this added safety-net, it's recommended that all workers with a non-fluctuating 
+    /// number of instances be registered during startup (in the same fashion as the example below).
+    /// - While this can certainly simplify lifecycle management, it is by no means a hard
+    ///   requirement.
+    /// - There may be cases where you want to lazy-load a worker as it may not be needed on
+    ///   every run.
+    /// <!-- TODO: does this tenet require that worker run() fns take ownership of Self? -->
+    ///
     /// # Usage
     ///
     #[doc = include_str!("../doc/main_fn.md")]
-    ///
-    /// # Guarantees
-    ///
-    /// If a command (`Stop`/`Reload`) is given during startup, it will **not** be issued until
-    /// startup is completed. The command will be stored as the [`pending_command`](Self::pending_command), and will not be processed until `inform_started` is called.
-    ///
-    /// This guarantee is in place to help avoid state de-sync / mid-startup uncertainty.
-    ///
-    /// This guarantee further asserts that teardown will never begin while startup is in progress.
-    ///
-    /// This works in harmony with the task registration guarantees:
-    /// - `register_task()` will always fail during teardown
-    /// - `register_task()` never fail outside teardown). It can therefore be deduced that registration will never fail during startup.
-    ///
-    /// Because of this added safety-net, it's highly recommended that any workers have task registration peformed during startup. This implementation sees `TaskHandle`s stored as member fields of the worker, as opposed to passing a `TaskHandle` into the worker's `run()` method.
-    /// <!-- TODO: does this tenet require that worker run() fns take ownership of Self? -->
     ///
     /// # Errors
     ///
@@ -208,24 +218,20 @@ impl ShutdownManager {
     ///
     /// The restrictions in place, along with the associated error variants, are:
     ///
-    /// - If the application is already in the startup stage (`inform_starting()` callled > 1x)
+    /// - If the application is already in the startup stage
     ///   - Returns [`InformStartingError::AlreadyStarting`]
     ///   - This does not include the implicit state encountered immediately at launch. No custom
     ///     logic is required for first launch.
     ///
     /// - If the current state is not eligible for transition to `Starting`
     ///   - Returns [`InformStartingError::InvalidState`]
-    ///   - The only valid transitions are:
-    ///     1. The application is in its first start-up sequence.
-    ///        - This is the first state change that must occur at launch. No other transitions are
-    ///          supported
-    ///     2. From teardown
-    ///        - Teardown needs to have completed successfully
+    ///   - The only valid transitions are from the following states:
+    ///     1. The application is in its first start-up sequence
+    ///     2. The application has successfully finished teardown
     ///
-    /// - If teardown has finished successfully, but the command is not `Reload`
+    /// - If teardown has finished successfully, but the issued command is not `Reload`
     ///   - Returns [`InformStartingError::SubsequentStartNonReload`]
-    ///     - Startup should never be re-attempted after `Stop` is issued.
-    ///     - The [`pending_command`](Self::pending_command) is not considered here.
+    ///   - Startup should never be re-attempted after `Stop` is issued (implied by non-`Reload`).
     pub fn inform_starting(&self) -> Result<(), InformStartingError> {
         SharedState::inform_starting(&self.shared)
     }
@@ -248,10 +254,40 @@ impl ShutdownManager {
         SharedState::inform_started(&self.shared)
     }
 
+    /// Sends a `Stop` command
+    ///
+    /// # Parameters
+    ///
+    /// - `exit_code`
+    ///   - The code that the process should exit with.
+    ///   - For a standard no-issue exit, this is typically `0`.
+    ///
+    /// # Returns
+    ///
+    /// Returns a [`StopResult`].
+    ///
+    /// While not a conventional `Result` with `Ok`/`Err` states, a `StopResult` does represent
+    /// varying degrees of "success". Despite this, a call to `stop` will always result in either 
+    /// immediate or queued teardown and exit.
+    /// Therefore, handling is optional.
+    ///
+    /// - If either [`issued_command`] or [`pending_command`] contain `Stop`,
+    ///   returns [`StopResult::AlreadyIssued`]
+    /// - Otherwise,
+    ///   - If currently in startup, saved to `pending_command` and returns [`StopResult::IssuedPending`]
+    ///   - If running or tearing down, saved to `issued_command` and returns [`StopResult::Issued`]
+    ///
+    /// **Note**: Issuing stop will directly replace an issued or pending `Reload`, as long as the reload hasn't already entered startup.
+    ///
+    /// The inner [`StopCommand`] contained in each variant will be the previously issued `Stop`, if any, or the command provided.
+    ///
+    /// [`issued_command`]: Self::issued_command
+    /// [`pending_command`]: Self::pending_command
     #[must_use]
     pub fn stop(&self, exit_code: u8) -> StopResult {
         tracing::info!(exit_code, "Received request to stop (exit code: {exit_code})");
         let res = self.shared_lock().stop(exit_code);
+        // !- TODO: remove
         match &res {
             StopResult::Issued(_) => {
                 tracing::info!("Stop issued successfully. Starting teardown procedures");
@@ -267,15 +303,38 @@ impl ShutdownManager {
         }
         res
     }
+    
+    /// Sends a `Reload` command
+    ///
+    /// # Returns
+    ///
+    /// Returns a [`ReloadResult`].
+    ///
+    /// While not a conventional `Result` with `Ok`/`Err` states, a `ReloadResult` does represent
+    /// varying degrees of "success".
+    ///
+    /// - If either [`issued_command`] or [`pending_command`] contain `Stop`,
+    ///   returns [`ReloadResult::Stopping`] with the issued `Stop` command
+    /// - Otherwise, if either [`issued_command`] or [`pending_command`] contain `Reload`, returns
+    ///   [`ReloadResult::AlreadyIssued`]
+    /// - Otherwise,
+    ///   - If currently in startup, saved to `pending_command` and returns
+    ///     [`ReloadResult::IssuedPending`]
+    ///   - If running, saved to `issued_command` and returns [`ReloadResult::Issued`]
+    ///   - **Note:** there is no case for tearing dowm as this would imply either `Stop` or
+    ///     `Reload` has been issued, which is covered by the first 2 cases.
+    ///
+    /// [`issued_command`]: Self::issued_command
+    /// [`pending_command`]: Self::pending_command
     #[must_use]
     pub fn reload(&self) -> ReloadResult {
         tracing::info!("Received request to reload");
         let res = self.shared_lock().reload();
+        // !- TODO: remove
         match &res {
             ReloadResult::Issued => {
                 tracing::info!("Reload issued successfully. Starting teardown procedures");
                 SharedState::start_teardown(&self.shared);
-                //self.teardown();
             },
             ReloadResult::IssuedPending  => {
                 tracing::info!("Reload is pending and will be issued upon finishing startup");
@@ -289,6 +348,12 @@ impl ShutdownManager {
         }
         res
     }
+    
+    /// Helper that calls either [`stop()`](Self::stop) or [`reload()`](Self::reload) based on the provided [`Command`]
+    ///
+    /// # Returns
+    ///
+    /// Returns a [`CommandResult`], an enum containing a variant for the type returned by each respective dispatched fn.
     #[must_use]
     pub fn issue_command(&self, command: Command) -> CommandResult {
         match command {
@@ -306,11 +371,12 @@ impl ShutdownManager {
             None
         }
     }
+
     /// The currently issued [`Command`].
     ///
     /// # Issued vs. Pending
     ///
-    /// If a command is issued while the application is in it's startup stage, it will be
+    /// If a command is issued while the application is in its startup stage, it will be
     /// stored to [`pending_command`](Self::pending_command) until startup completes ([`inform_started`](Self::inform_started) is called).
     ///
     /// Once startup completes, the pending command will replace the issued command (if any),
@@ -324,7 +390,7 @@ impl ShutdownManager {
     ///
     /// # Issued vs. Pending
     ///
-    /// If a command is issued while the application is in it's startup stage, it will be
+    /// If a command is issued while the application is in its startup stage, it will be
     /// stored to [`pending_command`](Self::pending_command) until startup completes ([`inform_started`](Self::inform_started) is called).
     ///
     /// Once startup completes, the pending command will replace the issued command (if any),
@@ -335,40 +401,81 @@ impl ShutdownManager {
     }
 
     /// Current stage of app lifecycle
+    ///
+    /// `elme-shutdown` classifies an application's lifecycle using the 3 following stages:
+    ///
+    /// 1. Startup
+    ///    - The "init" stage
+    ///    - The application is getting ready to serve its intended purpose
+    /// 1. Running
+    ///    - The "ready" stage
+    ///    - After starting up, the application is serving its intended purpose
+    /// 1. Teardown
+    ///    - The "cleanup" stage
+    ///    - All work stopped, all non-globals dropped, control returns to `main`
+    /// 
+    /// Handling of an application's lifecycle is done via:
+    /// - [`inform_starting`](ShutdownManager::inform_starting)
+    /// - [`inform_started`](ShutdownManager::inform_started)
+    /// - [Commands](#Commands)
     #[must_use]
     pub fn lifecycle_stage(&self) -> LifecycleStage {
         self.shared_lock().lifecycle_stage()
     }
+
+    /// The application's current `RunState`
+    ///
+    /// See the [`RunState`] docs for more information.
     #[must_use]
     pub fn run_state(&self) -> RunState {
         self.shared_lock().run_state()
     }
 
     // !- Task management
-
+    
+    /// <!--
+    /// The most straight-forward method of using a `TaskHandle` is to pass it into a worker's
+    /// constructor, and store it as a field.
+    /// -->
     pub fn register_task(&self, task_name: &'static str) -> Result<TaskHandle, RegisterError> {
         SharedState::register_task(&self.shared, task_name)
     }
 
+    /// Returns a list of tasks and associated instance counts
+    ///
+    /// Does not include inactive tasks (tasks with an imstance count of `0`)
+    /// - Occurs when a registered task has all [`TaskHandle`]s dropped
     #[must_use]
     pub fn task_list(&self) -> TrackedTaskList {
         let mut task_list = self.shared_lock().task_registry().as_task_list().into_active_filtered();
         task_list.sort_tasks();
         task_list
     }
+    
+    /// Total number of tasks (distinct task names) with `>= 1` instances.
     #[must_use]
     pub fn active_task_count(&self) -> usize {
         self.shared_lock().task_registry().active_task_count()
     }
+    /// Returns `true` if there is at least 1 task instance active
+    ///
+    /// Or, more technically: more than 1 `TaskHandle` exists that hasn't been dropped
     #[must_use]
     pub fn has_active_tasks(&self) -> bool {
         !self.shared_lock().task_registry().has_active_tasks()
     }
 
+    /// Total number of task instances currently present
+    ///
+    /// Equivalent to the number of [`TaskHandle`]s that haven't been dropped.
     #[must_use]
     pub fn total_instance_count(&self) -> InstanceCount {
         self.shared_lock().task_registry().total_instance_count()
     }
+    /// Total number of task instances currently present for a given task name
+    ///
+    /// Equivalent to the number of [`TaskHandle`]s for the given task name which haven't
+    /// been dropped.
     #[must_use]
     pub fn task_instance_count(&self, task_name: &'static str) -> InstanceCount {
         self.shared_lock().task_registry().task_instance_count(task_name)
@@ -376,10 +483,31 @@ impl ShutdownManager {
 
     // !- Teardown futures
 
+    /// Returns a [`Future`] which will be resolved once teardown starts.
+    ///
+    /// If teardown has already started, the future will resolve immediately.
+    /// 
+    /// This is typically used by tasks to trigger their graceful stop logic.
+    /// 
+    /// For convenience, [`TaskHandle`] also contains a
+    /// [`wait_for_teardown_start()`](TaskHandle::wait_for_teardown_start) method
+    /// providing identical functionality.
     pub fn wait_for_teardown_start(&self) -> impl Future<Output=()> {
         let token = self.shared_lock().teardown_start_token();
         token.cancelled_owned()
     }
+
+    /// Returns a [`Future`] which will be resolved once teardown completes successfully (all
+    /// `TaskHandle`'s dropped).
+    /// If teardown has already finished, the future will resolve immediately.
+    /// 
+    /// This is typically used from `main()` to delay exit/restart until all tasks have
+    /// finished gracefully.
+    /// 
+    /// Unlike `wait_for_teardown_start()`, `TaskHandle` does not provide a 
+    /// `wait_for_teardown_done()` method, as this usage would almost always be an anti-pattern (the
+    /// future will never complete because the associated handle likely remains in scope, preventing
+    /// teardown from finishing).
     pub fn wait_for_teardown_done(&self) -> impl Future<Output=()> {
         let token = self.shared_lock().teardown_done_token();
         token.cancelled_owned()
@@ -388,9 +516,6 @@ impl ShutdownManager {
     // !- Teardown callbacks
 
     /// An optional callback/closure fn that is called once teardown completes.
-    ///
-    /// The provided fn will only be executed if **all tasks are stopped gracefully
-    /// before the timeout is reached**.
     ///
     /// Supports builder-style method chaining (`mut` is not required).
     ///
@@ -401,6 +526,25 @@ impl ShutdownManager {
     ///
     /// The provided fn receives a single parameter: [`&TeardownStats`](TeardownStats).
     ///
+    /// # Example
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # pub async fn main() {
+    /// # pub mod elme {
+    /// #     pub mod shutdown {
+    /// #         pub use elme_shutdown::ShutdownManager as ShutdownManager;
+    /// #     }
+    /// # };
+    /// use elme::shutdown::ShutdownManager;
+    ///
+    /// let shutdown_manager = ShutdownManager::default()
+    ///     .on_teardown(|stats| {
+    ///         println!("Teardown timed-out in {}", stats.duration_text());
+    ///     });
+    /// # }
+    /// ```
+    ///
     /// # Usage
     ///
     /// The intended use-case is for alternative handling or reporting of teardown stats.
@@ -409,10 +553,13 @@ impl ShutdownManager {
     ///
     /// # Behavior
     ///
+    /// The provided fn will only be executed if **all tasks are stopped gracefully
+    /// before the timeout is reached**.
+    ///
     /// If the teardown was triggered with a stop command, the application
     /// will terminate ~immediately after the provided fn returns.
     ///
-    /// Otherwise - for a reload command - app startup should begin ~immediately after.
+    /// Otherwise - for a reload command - startup should begin ~immediately after.
     ///
     /// # Related
     ///
@@ -435,9 +582,6 @@ impl ShutdownManager {
 
     /// An optional callback/closure fn that is called if the teardown timeout is reached.
     ///
-    /// The provided fn will only be executed if **the teardown timeout is reached before all
-    /// tasks have gracefully stopped**.
-    ///
     /// Supports builder-style method chaining (`mut` is not required).
     ///
     /// Replaces any fn's provided by prior invocations. To unset the callback,
@@ -447,6 +591,26 @@ impl ShutdownManager {
     ///
     /// The provided fn receives a single parameter: [`&TeardownTimeoutStats`](TeardownTimeoutStats).
     ///
+    /// # Example
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # pub async fn main() {
+    /// # pub mod elme {
+    /// #     pub mod shutdown {
+    /// #         pub use elme_shutdown::ShutdownManager as ShutdownManager;
+    /// #     }
+    /// # };
+    /// use elme::shutdown::ShutdownManager;
+    ///
+    /// let shutdown_manager = ShutdownManager::default()
+    ///     .on_timeout(|stats| {
+    ///         println!("Teardown timed-out in {}", stats.duration_text());
+    ///         println!("{} instances did not stop in time.", stats.total_instances_timed_out());
+    ///     });
+    /// # }
+    /// ```
+    ///
     /// # Usage
     ///
     /// The intended use-case is for alternative handling or reporting of timeout stats.
@@ -454,6 +618,9 @@ impl ShutdownManager {
     /// This should **not** be used to handle recovery attempts / cleanup / shutdown procedures.
     ///
     /// # Behavior
+    ///
+    /// The provided fn will only be executed if **the teardown timeout is reached before all
+    /// tasks have gracefully stopped**.
     ///
     /// The application will **always** terminate ~immediately after this fn is called,
     /// regardless of the issued command.
