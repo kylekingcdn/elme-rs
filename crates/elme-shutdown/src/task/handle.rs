@@ -74,8 +74,23 @@ impl TaskHandle {
         }
     }
 
+    /// Creates a new [`TaskHandle`] for a task with the provided name
+    ///
     /// This is identical to
     /// [`ShutdownManager::register_task`](crate::ShutdownManager::register_task).
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`RegisterError`] if task registration fails.
+    ///
+    /// Task registration only fails if the attempt occurs during teardown.
+    ///
+    /// # Guarantees
+    ///
+    /// - Task registration ***never fails*** during `Startup` or `Running` stages.
+    /// - Task registration ***always fails*** during the `Teardown` stage.
+    ///
+    /// ---
     ///
     /// See the
     /// [`ShutdownManager` method](crate::ShutdownManager::register_task) for more information.
