@@ -39,7 +39,7 @@ impl MyWorker {
 }
 ```
 
-#### Handle worker graceful stop
+#### Implement worker graceful stop
 
 There are numerous variations of worker run loops.
 This example operates on a '*schedule*'-style worker.
@@ -276,4 +276,42 @@ async fn main() -> Result<ExitCode, Box<dyn Error>> {
 
 #### Add `tracing` writer
 
-<div class="warning">Coming soon</div>
+If your application has support for [`tracing`] *and* you have the `progress` feature of
+`elme-shutdown` enabled, there's just one last step.
+
+To prevent broken console output, a custom `tracing-subscriber` writer must be installed.
+
+**Note:** This requires the `progress-writer` feature to be enabled.
+- If `full` is enabled, `progress-writer` will be enabled automatically
+- Otherwise, you can replace `progress` with `progress-writer`, as `progress` will be implied
+
+To install the writer, simply add `.map_writer(|w| shutdown_mgr.mapped_progress_writer(w))` *to
+the **end*** of your [`tracing_subscriber::fmt`](mod@tracing_subscriber::fmt) chain.
+
+```rust
+# #[tokio::main]
+# async fn main() {
+# use elme_shutdown::ShutdownManager;
+#
+// init shutdown manager with custom config
+# let shutdown_config = ShutdownManager::config_builder().build();
+// ..
+let shutdown_mgr = ShutdownManager::init(shutdown_config);
+
+// init tracing-subscriber
+tracing_subscriber::fmt()
+    .with_ansi(true)
+    .with_ansi_sanitization(false)
+    .map_writer(|w| shutdown_mgr.mapped_progress_writer(w))
+    .init();
+
+// startup + run + teardown loop
+while shutdown_mgr.app_should_start() {
+    // ..
+    # break;
+}
+// ..
+# }
+```
+
+For additional information & examples, see [`mapped_progress_writer()`](ShutdownManager::mapped_progress_writer).
