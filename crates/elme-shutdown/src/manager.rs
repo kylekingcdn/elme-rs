@@ -158,6 +158,8 @@ impl ShutdownManager {
     /// let writer = ProgressWriter::new(shutdown_manager.progress_bars());
     /// ```
     ///
+    /// ---
+    ///
     /// See the [`ProgressWriter`](crate::progress::writer::ProgressWriter) docs for more info.
     #[cfg(all(
         feature = "progress",
@@ -413,8 +415,6 @@ impl ShutdownManager {
 
     /// Current stage of the application's lifecycle
     ///
-    /// See the [`LifecycleStage`] docs for more information.
-    ///
     /// # Lifecycle management
     ///
     /// Handling of an application's lifecycle is done via:
@@ -422,12 +422,18 @@ impl ShutdownManager {
     /// - [`inform_started()`](Self::inform_started)
     /// - [`stop()`](Self::stop)
     /// - [`reload()`](Self::reload)
+    ///
+    /// ---
+    ///
+    /// See the [`LifecycleStage`] docs for more information.
     #[must_use]
     pub fn lifecycle_stage(&self) -> LifecycleStage {
         self.shared_lock().lifecycle_stage()
     }
 
     /// The application's current `RunState`
+    ///
+    /// ---
     ///
     /// See the [`RunState`] docs for more information.
     #[must_use]
@@ -628,7 +634,7 @@ impl ShutdownManager {
     }
     /// Returns `true` if there is at least 1 task instance active
     ///
-    /// Or, more technically: more than 1 `TaskHandle` exists that hasn't been dropped
+    /// Or, more technically: if more than 1 `TaskHandle` hasn't been dropped,
     #[must_use]
     pub fn has_active_tasks(&self) -> bool {
         !self.shared_lock().task_registry().has_active_tasks()
@@ -726,6 +732,8 @@ impl ShutdownManager {
     ///
     /// Otherwise - for a reload command - startup should begin ~immediately after.
     ///
+    /// ---
+    ///
     /// # Related
     ///
     /// - [`unset_on_teardown()`](Self::unset_on_teardown)
@@ -785,6 +793,8 @@ impl ShutdownManager {
     ///
     /// The application will **always** terminate ~immediately after this fn is called,
     /// regardless of the issued command.
+    ///
+    /// ---
     ///
     /// # Related
     ///

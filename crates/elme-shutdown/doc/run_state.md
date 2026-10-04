@@ -3,58 +3,61 @@
 If an application opts out of `Reload` support, each of the 3 variants (excluding `Reloading`)
 will directly mirror their `LifecycleStage` counterparts. e.g:
 
-```text
-                            LifecycleStage |  RunState
-   Application executed ---> --------------|------------
-        inform_starting() |                |            |
+<!-- TODO: add colour for improved readability -->
+
+<pre>
+        <span style="color:cyan;">== CALL STACK ==</span>    LifecycleStage    RunState
+   <span style="color:orange;">Application executed</span> ---> --------------|------------
+        <span style="color:cyan;">inform_starting()</span> |                |            |
                           |    Startup     | FirstStart |
                           |                |            |
-         inform_started() | ----- | ------ | ---- | --- |
+         <span style="color:cyan;">inform_started()</span> | ----- | ------ | ---- | --- |
                           |                |            |
                           |    Running     |    Ready   |
                           |                |            |
-                   stop() | ----- | ------ | ---- | --- |
-        Teardown starts --->               |            |
+                   <span style="color:cyan;">stop()</span> | ----- | ------ | ---- | --- |
+        <span style="color:orange;">Teardown starts</span> --->               |            |
                           |    Teardown    |  Stopping  |
-      Teardown finishes --->               |            |
-      Application exits ---> ---------------------------
-```
+      <span style="color:orange;">Teardown finishes</span> --->               |            |
+      <span style="color:orange;">Application exits</span> ---> ---------------------------
+</pre>
 
 ### With reload
 
-The difference is however evident when used in the context of a `Reload` command:
+The difference between the types is evident when viewed in the context of a `Reload` command:
 
-> **Note:** Teardown start/finish markers excluded in this diagram
+> **Note:** Teardown start/finish markers excluded in this diagram for clarity
 
-```text
-                            LifecycleStage |  RunState
- Application executed ---> ----------------|------------
-        inform_starting() |                |            |
+<!-- TODO: add colour for improved readability -->
+<pre>
+        <span style="color:cyan;">== CALL STACK ==</span>    LifecycleStage    RunState
+   <span style="color:orange;">Application executed</span> ---> --------------|------------
+        <span style="color:cyan;">inform_starting()</span> |                |            |
                           |    Startup     | FirstStart |
                           |                |            |
-         inform_started() | ----- | ------ | ---- | --- |
+         <span style="color:cyan;">inform_started()</span> | ----- | ------ | ---- | --- |
                           |                |            |
                           |    Running     |    Ready   |
                           |                |            |
-                 reload() | ----- | ------ | ---- | --- |
+                 <span style="color:cyan;">reload()</span> | ----- | ------ | ---- | --- |
                           |                |            |
                           |    Teardown    |            |
                           |                |            |
-        inform_starting() | ----- | ------ |  Reloading |
+        <span style="color:cyan;">inform_starting()</span> | ----- | ------ |  <b><u>Reloading</u></b> |
                           |                |            |
                           |    Startup     |            |
                           |                |            |
-         inform_started() | ----- | ------ | ---- | --- |
+         <span style="color:cyan;">inform_started()</span> | ----- | ------ | ---- | --- |
                           |                |            |
                           |    Running     |    Ready   |
                           |                |            |
-                   stop() | ----- | ------ | ---- | --- |
+                   <span style="color:cyan;">stop()</span> | ----- | ------ | ---- | --- |
                           |                |            |
                           |    Teardown    |  Stopping  |
                           |                |            |
-    Application exits ---> -----------------------------
-```
+    <span style="color:orange;">Application exits</span> ---> -----------------------------
+</pre>
 
 As can be seen:
-- `FirstStart` only occurs once
-- The `RunState` variant describing the current command persists through startup
+- The `RunState` variant for a command (e.g. `Reloading`) persists through startup
+- The startup variant, `FirstStart` only occurs once

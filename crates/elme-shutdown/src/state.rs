@@ -22,16 +22,16 @@ use tokio_util::sync::CancellationToken;
 
 // !- State enums
 
-/// `elme-shutdown` classifies an application's lifecycle using the 3 following stages:
+/// The current stage of the application's lifecycle.
 ///
 /// 1. `Startup`
-///    - The "init" stage
+///    - The '*init*' stage
 ///    - The application is getting ready to serve its intended purpose
 /// 1. `Running`
-///    - The "ready" stage
+///    - The '*ready*' stage
 ///    - After starting up, the application is serving its intended purpose
 /// 1. `Teardown`
-///    - The "cleanup" stage
+///    - The '*cleanup*' stage
 ///    - All work stopped, all non-globals dropped, control returns to `main`
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LifecycleStage {

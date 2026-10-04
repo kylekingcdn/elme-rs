@@ -11,31 +11,35 @@ the following conditions must be met:
    - All tasks have finished, or
    - A timeout is reached (preventing indefinite waiting on stalled tasks)
 
-`elme-shutdown` uses `TaskHandle`s to uphold these requirements.
+`elme-shutdown` provides *`TaskHandle`* to uphold these requirements.
 
-### Task handles
+#### Task handles
 
 A [`TaskHandle`] is used to represent a single instance of a background worker.
 
 A handle can be acquired by registering a task via [`ShutdownManager::register_task`].
+
 Tasks are registered with a name to aid in identification. For example:
 
 ```rust
-/// # #[tokio::main]
-/// # pub async fn main() {
-/// # pub mod elme {
-/// #     pub mod shutdown {
-/// #         pub use elme_shutdown::ShutdownManager;
-/// #     }
-/// # }
-/// use elme::shutdown::ShutdownManager;
-///
-/// let shutdown_mgr = ShutdownManager::default();
-///
-/// let worker_handle = shutdown_mgr.register_task("My custom worker")?;
-/// let worker = MyWorker::new(worker_handle);
-/// tokio::spawn(async move { worker.run().await; });
-/// # }
+# #[tokio::main]
+# pub async fn main() {
+# pub mod elme {
+#     pub mod shutdown {
+#         pub use elme_shutdown::ShutdownManager;
+#     }
+# }
+use elme::shutdown::ShutdownManager;
+
+let shutdown_mgr = ShutdownManager::default();
+
+// setup worker
+let worker_handle = shutdown_mgr.register_task("My custom worker")?;
+let worker = MyWorker::new(worker_handle);
+
+// run worker
+tokio::spawn(async move { worker.run().await; });
+# }
 ```
 
 Upon registration, a counter for the number of running instances for a given task (by name) is
@@ -45,6 +49,8 @@ Once a `TaskHandle` is dropped, the instance counter associated with the task na
 
 Cloning a `TaskHandle` is identical to registering a new task of the same name.
 
+##### Additional uses
+
 A [`TaskHandle`] can also be used to:
 - Check whether or not teardown has begun
 - Provide a future that can be used to wait until teardown begins
@@ -53,9 +59,10 @@ A [`TaskHandle`] can also be used to:
 
 ## Teardown
 
-"Teardown" (or "tearing down") is the term used to refer to the 'graceful shutdown' period of
+'***Teardown***' (or '*tearing down*') is the term used to refer to the 'graceful shutdown' period of
 the application's lifecycle.
-It can be thought of as the opposite of "start-up" (or "starting up").
+
+Conceptually, it is the opposite of '***start-up***' (or '*starting up*').
 
 This distinction is made as teardown plays an equally important role in not just `Stop` commands,
 but `Reload` commands too.
@@ -71,14 +78,14 @@ Teardown is considered complete once all task handles are dropped (all instance 
 
 `elme-shutdown` classifies an application's lifecycle using the 3 following stages:
 
-1. Startup
-   - The "init" stage
+1. **Startup**
+   - The 'init' stage
    - The application is getting ready to serve its intended purpose
-1. Running
-   - The "ready" stage
+1. **Running**
+   - The 'ready' stage
    - After starting up, the application is serving its intended purpose
-1. Teardown
-   - The "cleanup" stage
+1. **Teardown**
+   - The 'cleanup' stage
    - All work stopped, all non-globals dropped, control returns to `main`
 
 In code, these states are provided by the [`LifecycleStage`] enum.
@@ -101,13 +108,13 @@ Without diving into the details here, it is mentioned to note the following:
 
 ## Commands
 
-`elme-shutdown` has two commands used to handle "exit" procedures: ***`Stop`*** and ***`Reload`***.
+`elme-shutdown` has two commands used to handle 'exit' procedures: ***`Stop`*** and ***`Reload`***.
 
 In code, commands are provided by the [`Command`](command::Command) enum.
 
-### Stop
+#### Stop
 
-`Stop` is the standard "graceful shutdown" command.
+`Stop` is the standard 'graceful shutdown' command.
 
 After issuing `Stop`, the following sequence of steps occur:
 1. Background tasks gracefully finish or cancel their work (teardown)
@@ -116,7 +123,7 @@ After issuing `Stop`, the following sequence of steps occur:
 
 <!--`Stop` can be issued with [`ShutdownManager::stop()`](ShutdownManager::stop)-->
 
-### Reload
+#### Reload
 
 The `Reload` command is similar to `Stop`, with the *only change occurring in step #3*.
 
@@ -156,7 +163,7 @@ a `HUP` signal invokes `Stop` instead of `Reload`.
 Signal handling is enabled by default.
 It can be disabled through [`ShutdownConfig::handle_signals`].
 
-### Repeat signal invocations
+#### Repeat signal invocations
 
 By default, if a signal is received more than once, the application will be terminated immediately.
 
@@ -166,9 +173,9 @@ This behaviour can be disabled through [`ShutdownConfig::terminate_on_second_sig
 
 Polling a teardown [`Future`] is an efficient strategy for reacting to teardown start/end events.
 
-### Teardown started future
+#### Teardown started future
 
-[`ShutdownManager`] provides a [`wait_for_teardown_start()`] method, returning a [`Future`]
+[`ShutdownManager`] provides a [`wait_for_teardown_start()`] method, returning a `Future`
 which will be resolved once teardown starts.
 If teardown has already started, the future will resolve immediately.
 
@@ -178,9 +185,9 @@ For convenience, [`TaskHandle`] also contains a
 [`wait_for_teardown_start()`](TaskHandle::wait_for_teardown_start) method providing identical
 functionality.
 
-### Teardown completed future
+#### Teardown completed future
 
-[`ShutdownManager`] also provides a [`wait_for_teardown_done()`] method that returns a [`Future`]
+[`ShutdownManager`] also provides a [`wait_for_teardown_done()`] method that returns a `Future`
 which will be resolved once teardown completes successfully (all `TaskHandle`'s dropped).
 If teardown has already finished, the future will resolve immediately.
 
@@ -195,14 +202,14 @@ because the associated handle likely remains in scope, preventing teardown from 
 
 Enabling the `progress` feature provides automatic support for teardown progress bars.
 
-### Tracing compatibility
+#### Tracing compatibility
 
 If you are using the [`tracing`](::tracing) crate, it's highly recommended to use
 [`ProgressWriter`] to avoid broken output. This requires the `progress-writer` feature.
 
 See the [`ProgressWriter`] docs for more information.
 
-### Example output
+#### Example output
 
 <pre> [0/1] <span style="color:green;">⠁</span> Busy worker
  [0/4] <span style="color:green;">⠤</span> Delegated worker
@@ -218,7 +225,7 @@ See the [`ProgressWriter`] docs for more information.
 For improved monitoring and simpler diagnosing of timeouts,
 `elme-shutdown` will automatically output reports containing teardown and timeout stats.
 
-### Successful teardown report
+#### Successful teardown report
 
 The [`tracing::Level`] used for successful teardown reports can be changed
 via [`log_teardown_stats_level`](ShutdownConfig::log_teardown_stats_level). The default
@@ -250,7 +257,7 @@ Timeout:       <span style="font-weight:bold;">15s</span>
  - Worker manager       [<span style="color:green;">1/1</span>]
 ----------------------------------------</pre>
 
-### Timed-out teardown report
+#### Timed-out teardown report
 
 The [`tracing::Level`] used for timed-out teardown reports can be changed
 via [`log_timeout_stats_level`](ShutdownConfig::log_timeout_stats_level). The default

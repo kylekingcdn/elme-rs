@@ -116,6 +116,8 @@ impl TaskHandle {
     ///
     /// This is typically used by tasks to trigger their graceful stop logic.
     ///
+    /// ---
+    ///
     /// This is identical to
     /// [`ShutdownManager::wait_for_teardown_start`](crate::ShutdownManager::wait_for_teardown_start).
     #[allow(clippy::missing_panics_doc)]

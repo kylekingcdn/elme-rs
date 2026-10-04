@@ -220,7 +220,7 @@ To do this:
 ```rust
 # use elme_shutdown::{ShutdownManager, TaskHandle};
 # use std::error::Error;
-use std::process::ExitCode
+use std::process::ExitCode;
 # use std::time::Duration;
 
 #[tokio::main]
