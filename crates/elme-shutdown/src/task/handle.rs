@@ -22,7 +22,10 @@ use std::fmt;
 /// Once a `TaskHandle` is dropped, the instance counter associated with the task
 /// name is decremented.
 ///
-/// Cloning a `TaskHandle` is identical to registering a new task of the same name.
+/// `TaskHandle` does not implement `Clone`, as this would result in task registration which
+/// is inherently fallible.
+/// However, it does provide a [`try_clone()`](Self::try_clone] method.
+/// This is identical to registering a new task of the same name.
 ///
 /// ## Examples
 ///
@@ -106,6 +109,30 @@ impl TaskHandle {
         self.task_name
     }
 
+    /// Creates a new [`TaskHandle`] for a task with the same name as `self`
+    ///
+    /// This is identical to registering a task with the same name.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`RegisterError`] if task registration fails.
+    ///
+    /// Task registration only fails if the attempt occurs during teardown.
+    ///
+    /// # Guarantees
+    ///
+    /// - Task registration ***never fails*** during `Startup` or `Running` stages.
+    /// - Task registration ***always fails*** during the `Teardown` stage.
+    ///
+    /// ---
+    ///
+    /// See the
+    /// [`ShutdownManager` method](crate::ShutdownManager::register_task) for more information.
+    #[must_use]
+    pub fn try_clone(&self) -> Result<TaskHandle, RegisterError> {
+        SharedState::register_task(&self.shared, self.task_name)
+    }
+    
     /// The task name assigned during registration
     #[must_use]
     pub fn manager(&self) -> ShutdownManager {
@@ -137,11 +164,6 @@ impl TaskHandle {
     #[must_use]
     pub fn should_teardown(&self) -> bool {
         self.shared.lock().unwrap().teardown_started()
-    }
-}
-impl Clone for TaskHandle {
-    fn clone(&self) -> Self {
-        Self::new(self.task_name, self.shared.clone())
     }
 }
 impl Drop for TaskHandle {

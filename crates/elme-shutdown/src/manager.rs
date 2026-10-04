@@ -476,8 +476,8 @@ impl ShutdownManager {
     /// instances of a task) are still running. This is a critical aspect of graceful shutdown, as
     /// application exit will be delayed until all instance counters drop to 0.
     ///
-    /// Registering a task (or cloning a handle) will increment the instance count associated with
-    /// the task name).
+    /// Registering a task (or calling `try_clone` a handle) will increment the instance count
+    /// associated with the task name).
     ///
     /// Once a `TaskHandle` goes out of scope (is dropped), the counter is decremented.
     ///
@@ -566,7 +566,7 @@ impl ShutdownManager {
     ///
     /// ## Initializing concurrent workers
     ///
-    /// If a single handle is cloned to populate multiple instances of a worker in one go,
+    /// If a single handle is (try_)cloned to populate multiple instances of a worker in one go,
     /// the original handle should be manually dropped (or strategically scoped) to prevent
     /// lingering handles.
     ///
@@ -588,7 +588,7 @@ impl ShutdownManager {
     /// let mut workers = Vec::new();
     /// let handle = shutdown_mgr.register_task("Concurrent worker")?;
     /// for _ in (0..CONCURRENCY) {
-    ///     let worker = MyWorker::new(handle.clone()); // handle is cloned
+    ///     let worker = MyWorker::new(handle.try_clone()?); // handle is cloned
     ///     workers.push(worker);
     /// }
     /// drop(handle); // **CRITICAL** - handle must be manually dropped

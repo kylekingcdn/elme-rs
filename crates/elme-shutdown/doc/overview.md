@@ -57,8 +57,6 @@ incremented.
 
 Once a `TaskHandle` is dropped, the instance counter associated with the task name is decremented.
 
-Cloning a `TaskHandle` is identical to registering a new task of the same name.
-
 ##### Additional uses
 
 A [`TaskHandle`] can also be used to:
