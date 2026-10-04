@@ -55,10 +55,9 @@ Features for the corresponding crates (`elme`, `elme-shutdown`) are listed below
 
 ### v0.1.0 (initial release)
 
-- [ ] Fix `ProgressWriter` `stdout`/`stderr` merge
-- [ ] `ProgressWriter` docs
-- [ ] Break up `basic` example workers into dedicated modules
-- [ ] Add additional examples
+- [x] Fix `ProgressWriter` `stdout`/`stderr` merge
+- [x] `ProgressWriter` docs
 - [ ] Fix `LifecycleStage`/`RunState` incorrect usage of `loaded_command()`
 - [ ] Fix double `Reload` not stored to pending
 - [ ] Remove tracing events from `ShutdownManager::stop()` & `ShutdownManager::reload()`?
+- [ ] Break up `basic` example workers into dedicated modules

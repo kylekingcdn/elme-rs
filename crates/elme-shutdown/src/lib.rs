@@ -44,4 +44,4 @@ pub use teardown::stats::{TeardownStats, TeardownTimeoutStats};
 
 #[cfg(feature = "progress-writer")]
 #[cfg_attr(docsrs, doc(cfg(all(feature = "progress", feature = "progress-writer"))))]
-pub use progress::writer::ProgressWriter;
+pub use progress::writer::{MappedProgressWriter, ProgressWriter};

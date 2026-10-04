@@ -16,6 +16,11 @@ use crate::{
     teardown::stats::{TeardownStats, TeardownTimeoutStats},
 };
 
+#[cfg(feature = "progress-writer")]
+use crate::progress::writer::{MappedProgressWriter, ProgressWriter};
+#[cfg(feature = "progress-writer")]
+use tracing_subscriber::fmt::MakeWriter;
+
 use std::sync::{Arc, Mutex, MutexGuard};
 
 // !- Manager
@@ -152,34 +157,206 @@ impl ShutdownManager {
         self.shared_lock().hook_deps().progress_bars.clone()
     }
 
-    /// Creates a new [`ProgressWriter`](crate::progress::writer::ProgressWriter)
-    /// for use with `tracing-subscriber`.
+    /// Creates a new [`MappedProgressWriter`](MappedProgressWriter) for use with
+    /// `tracing-subscriber`.
+    ///
+    /// # Usage
+    ///
+    /// > **NOTE:** The [`Layer::map_writer`](tracing_subscriber::fmt::Layer::map_writer)
+    /// > call should be at the bottom of your `tracing_subscriber::fmt` builder chain!
+    ///
+    /// This is the preferred method of handling compatibility with `tracing`, as opposed
+    /// to:
+    /// - [`stdout_progress_writer()`](Self::stdout_progress_writer)
+    /// - [`stderr_progress_writer()`](Self::stderr_progress_writer)
+    ///
+    /// By using `mapped_progress_writer()`, the resulting [`ProgressWriter`] will directly
+    /// receive the writer currently in use by the [`tracing_subscriber::fmt::Layer`].
+    ///
+    /// This is beneficial as it:
+    /// - keeps all `tracing_subscriber` configuration localized
+    /// - removes all guess-work in output selection
+    /// - supports more advanced `tracing_subscriber::fmt` setups
+    ///
+    /// # Examples
+    ///
+    /// ## Basic example
+    ///
+    /// This example applies to the simple [`tracing_subscriber::fmt()`] builder
+    /// (***without*** using [`tracing_subscriber::registry()`]).
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    #[doc = include_str!("../doc/elme_proxy.rs")]
+    /// use elme::shutdown::ShutdownManager;
+    ///
+    /// let shutdown_mgr = ShutdownManager::default();
+    ///
+    /// // init tracing-subscriber
+    /// tracing_subscriber::fmt()
+    ///     .with_ansi(true)
+    ///     .with_ansi_sanitization(false)
+    ///     .map_writer(|w| shutdown_mgr.mapped_progress_writer(w))
+    ///     .init();
+    /// # }
+    /// ```
+    ///
+    /// ## Using `tracing_subscriber::registry()`
+    ///
+    /// This example builds a [`tracing_subscriber::fmt::Layer`]  to then be used
+    /// with [`tracing_subscriber::registry()`].
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    #[doc = include_str!("../doc/elme_proxy.rs")]
+    /// use elme::shutdown::ShutdownManager;
+    /// use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+    ///
+    /// let shutdown_mgr = ShutdownManager::default();
+    ///
+    /// // init tracing-subscriber
+    /// let fmt_layer = tracing_subscriber::fmt::layer()
+    ///     .with_ansi(true)
+    ///     .with_ansi_sanitization(false)
+    ///     .map_writer(|w| shutdown_mgr.mapped_progress_writer(w));
+    ///
+    /// tracing_subscriber::registry()
+    ///     .with(fmt_layer)
+    ///     .init();
+    /// # }
+    /// ```
+    /// # Definition
     ///
     /// This is identical to:
     ///
     /// ```
-    /// # use elme_shutdown::{ProgressWriter, ShutdownConfig, ShutdownManager};
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// # use elme_shutdown::{MappedProgressWriter, ShutdownManager};
     /// #
-    /// # let config = ShutdownConfig::builder().handle_signals(false).build();
-    /// # let shutdown_manager = ShutdownManager::init(config);
-    /// let writer = ProgressWriter::new(shutdown_manager.progress_bars());
+    /// # let shutdown_manager = ShutdownManager::default();
+    /// # let writer = std::io::stdout;
+    /// let writer = MappedProgressWriter::new(shutdown_manager.progress_bars(), writer);
+    /// # }
+    /// ```
+    #[cfg(all(feature = "progress-writer", feature = "progress"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "progress-writer")))]
+    #[must_use]
+    pub fn mapped_progress_writer<W>(&self, writer: W) -> MappedProgressWriter<W>
+    where
+        W: for<'writer> MakeWriter<'writer> + 'static
+    {
+        MappedProgressWriter::new(self.progress_bars(), writer)
+    }
+
+    /// Creates a new `stdout` [`ProgressWriter`](ProgressWriter) for use
+    /// with [`tracing-subscriber`](::tracing_subscriber).
+    ///
+    /// > **NOTE:** It's highly recommended to instead use
+    /// > [`mapped_progress_writer`](Self::mapped_progress_writer), if possible.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    #[doc = include_str!("../doc/elme_proxy.rs")]
+    /// use elme::shutdown::ShutdownManager;
+    ///
+    /// let shutdown_mgr = ShutdownManager::default();
+    ///
+    /// // init tracing-subscriber
+    /// tracing_subscriber::fmt()
+    ///     .with_ansi(true)
+    ///     .with_ansi_sanitization(false)
+    ///     .with_writer(shutdown_mgr.stdout_progress_writer())
+    ///     .init();
+    /// # }
     /// ```
     ///
-    /// ---
+    /// # Definition
     ///
-    /// See the [`ProgressWriter`](crate::progress::writer::ProgressWriter) docs for more info.
-    #[cfg(all(
-        feature = "progress",
-        feature = "progress-writer"
-    ))]
-    #[cfg_attr(docsrs, doc(cfg(all(
-        feature = "progress",
-        feature = "progress-writer"
-    ))))]
+    /// This is identical to:
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// # use elme_shutdown::{ProgressWriter, ShutdownManager};
+    /// #
+    /// # let shutdown_manager = ShutdownManager::default();
+    /// let writer = ProgressWriter::new_stdout(shutdown_manager.progress_bars());
+    /// # }
+    /// ```
+    ///
+    /// # Output to `stderr`
+    ///
+    /// To explicitly write `tracing` messages to `stderr` instead of `stdout`,
+    /// use [`stderr_progress_writer()`](Self::stderr_progress_writer).
+    // ///
+    // /// ---
+    // ///
+    // /// See the [`ProgressWriter`] docs for more information.
+    #[cfg(feature = "progress-writer")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "progress-writer")))]
     #[must_use]
-    pub fn progress_writer(&self) -> crate::progress::writer::ProgressWriter {
-        let mp = self.progress_bars();
-        crate::progress::writer::ProgressWriter::new(mp)
+    pub fn stdout_progress_writer(&self) -> ProgressWriter<std::io::Stdout> {
+        ProgressWriter::new_stdout(self.progress_bars())
+    }
+
+    /// Creates a new `stderr` [`ProgressWriter`](ProgressWriter) for use
+    /// with [`tracing-subscriber`](::tracing_subscriber).
+    ///
+    /// > **NOTE:** It's highly recommended to instead use
+    /// > [`mapped_progress_writer`](Self::mapped_progress_writer), if possible.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    #[doc = include_str!("../doc/elme_proxy.rs")]
+    /// use elme::shutdown::ShutdownManager;
+    ///
+    /// let shutdown_mgr = ShutdownManager::default();
+    ///
+    /// // init tracing-subscriber
+    /// tracing_subscriber::fmt()
+    ///     .with_ansi(true)
+    ///     .with_ansi_sanitization(false)
+    ///     .with_writer(shutdown_mgr.stderr_progress_writer())
+    ///     .init();
+    /// # }
+    /// ```
+    ///
+    /// # Definition
+    ///
+    /// This is identical to:
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// # use elme_shutdown::{ProgressWriter, ShutdownManager};
+    /// #
+    /// # let shutdown_manager = ShutdownManager::default();
+    /// let writer = ProgressWriter::new_stderr(shutdown_manager.progress_bars());
+    /// # }
+    /// ```
+    ///
+    /// # Output to `stdout`
+    ///
+    /// To explicitly write `tracing` messages to `stdout` instead of `stderr`,
+    /// use [`stdout_progress_writer`](Self::stdout_progress_writer).
+    // ///
+    // /// ---
+    // ///
+    // /// See the [`ProgressWriter`] docs for more information.
+    #[cfg(feature = "progress-writer")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "progress-writer")))]
+    #[must_use]
+    pub fn stderr_progress_writer(&self) -> ProgressWriter<std::io::Stderr> {
+        ProgressWriter::new_stderr(self.progress_bars())
     }
 
     /// used to centralize `missing_panic_docs` warnings without blanket allow
