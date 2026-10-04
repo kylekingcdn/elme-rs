@@ -1,6 +1,7 @@
 mod rgb;
 
 #[cfg(feature = "progress-writer")]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "progress-writer"))))]
 pub(crate) mod writer;
 
 use self::rgb::{Rgb, MidpointTransition, Transition};

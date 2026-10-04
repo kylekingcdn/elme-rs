@@ -80,7 +80,7 @@ impl MyWorker {
 Graceful shutdown support is added by using a [`tokio::select`].
 If teardown begins during the '*cooldown*' period, we return immediately.
 
-The `run()` fn takes ownership of the worker, so it (and it's handle) drop immediately after.
+The `run()` fn takes ownership of the worker, so it (and its handle) drop immediately after.
 
 ```rust
 # use elme_shutdown::TaskHandle;

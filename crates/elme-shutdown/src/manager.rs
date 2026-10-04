@@ -127,7 +127,7 @@ impl ShutdownManager {
 
     /// Creates a new [`ShutdownConfigBuilder`]
     ///
-    /// Identical to both [`ShutdownConfig::builder()`](ShutdownConfig::builder)
+    /// Identical to both [`ShutdownManager::config_builder()`](ShutdownManager::config_builder)
     /// and [`ShutdownConfigBuilder::new()`](ShutdownConfigBuilder::new)
     ///
     /// Provided for the sole purpose of reducing one-off import clutter.

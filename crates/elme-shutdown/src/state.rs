@@ -79,6 +79,7 @@ impl fmt::Display for LifecycleStage {
 ///
 /// # Comparison to `LifecycleStage`
 ///
+// ! FIXME: make color output conditional based on running on docsrs
 #[doc = include_str!("../doc/run_state.md")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RunState {

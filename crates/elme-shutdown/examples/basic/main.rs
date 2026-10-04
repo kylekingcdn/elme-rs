@@ -1,7 +1,7 @@
 mod worker;
 use worker::WorkerManager;
 
-use elme_shutdown::{ShutdownConfig, ShutdownManager};
+use elme_shutdown::ShutdownManager;
 use std::process::ExitCode;
 use std::time::Duration;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
@@ -14,14 +14,14 @@ async fn main() -> color_eyre::Result<ExitCode> {
     color_eyre::install()?;
 
     // - setup elme-shutdown
-    let shutdown_config = ShutdownConfig::builder()
+    let shutdown_config = ShutdownManager::config_builder()
         .timeout(Duration::from_secs(15))
         .build();
     let shutdown_mgr = ShutdownManager::init(shutdown_config);
 
     // - setup tracing
     let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("info"))?;
+        .or_else(|_| EnvFilter::try_new("debug"))?;
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(true)
         .with_ansi_sanitization(false);

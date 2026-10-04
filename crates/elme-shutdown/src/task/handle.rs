@@ -122,11 +122,10 @@ impl TaskHandle {
     ///
     /// See the
     /// [`ShutdownManager` method](crate::ShutdownManager::register_task) for more information.
-    #[must_use]
     pub fn try_clone(&self) -> Result<TaskHandle, RegisterError> {
         SharedState::register_task(&self.shared, self.task_name)
     }
-    
+
     /// The task name assigned during registration
     #[must_use]
     pub fn task_name(&self) -> &'static str {
@@ -182,6 +181,6 @@ impl fmt::Debug for TaskHandle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TaskHandle")
          .field("task_name", &self.task_name)
-         .finish()
+         .finish_non_exhaustive()
     }
 }
