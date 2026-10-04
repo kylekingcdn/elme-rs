@@ -1,17 +1,19 @@
 // adapted from emersonford's excellent work on tracing-indicatif:
 // https://github.com/emersonford/tracing-indicatif/blob/main/src/writer.rs
 
-// !- FIXME: breaks stdout
 
 use indicatif::MultiProgress;
 use tracing_subscriber::fmt::MakeWriter;
 use std::io;
 
+// ! FIXME: missing docs
+// ! FIXME: breaks stdout
 #[derive(Clone)]
 pub struct ProgressWriter {
     mp: MultiProgress,
 }
 impl ProgressWriter {
+    // ! FIXME: missing docs
     #[must_use]
     pub fn new(mp: MultiProgress) -> Self {
         Self { mp }

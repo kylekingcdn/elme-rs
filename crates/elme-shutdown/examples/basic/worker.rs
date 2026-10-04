@@ -279,7 +279,6 @@ impl WorkerManager {
 
 // !- utils
 
-
 /// Utility fn's that aren't relevant to elme-shutdown example
 mod util {
     use super::Duration;
