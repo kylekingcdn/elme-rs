@@ -50,3 +50,15 @@ Features for the corresponding crates (`elme`, `elme-shutdown`) are listed below
 **`shutdown`** | *n/a* | Enables this module
 **`shutdown-progress`** | **`progress`** | Enables task + timeout progress bars during teardown
 **`shutdown-progress-writer`** | **`progress-writer`** | Provides a [`tracing-subscriber`](https://docs.rs/tracing-subscriber/latest) writer for clean `tracing` + `progress` output
+
+## Roadmap
+
+### v0.1.0 (initial release)
+
+- [ ] Fix `ProgressWriter` `stdout`/`stderr` merge
+- [ ] `ProgressWriter` docs
+- [ ] Break up `basic` example workers into dedicated modules
+- [ ] Add additional examples
+- [ ] Fix `LifecycleStage`/`RunState` incorrect usage of `loaded_command()`
+- [ ] Fix double `Reload` not stored to pending
+- [ ] Remove tracing events from `ShutdownManager::stop()` & `ShutdownManager::reload()`?
