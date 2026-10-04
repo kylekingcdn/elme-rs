@@ -30,11 +30,6 @@ jobs:
       - name: Docs [all features]
         run: cargo test --workspace --doc --all-features
 
-      - name: Examples [default features]
-        run: cargo test --workspace --doc
-      - name: Docs [all features]
-        run: cargo test --workspace --doc --all-features
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
