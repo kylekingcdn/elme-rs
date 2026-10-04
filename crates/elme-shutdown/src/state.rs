@@ -15,6 +15,7 @@ use crate::{
     },
 };
 
+use std::fmt;
 use std::process;
 use std::sync::{Arc, Mutex};
 use tokio_util::sync::CancellationToken;
@@ -56,6 +57,16 @@ impl LifecycleStage {
     #[must_use]
     pub fn is_teardown(&self) -> bool {
         *self == Self::Teardown
+    }
+}
+impl fmt::Display for LifecycleStage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::Startup => "Startup",
+            Self::Running => "Running",
+            Self::Teardown => "Teardown",
+        };
+        write!(f, "{name}")
     }
 }
 
@@ -102,8 +113,17 @@ impl RunState {
         *self == Self::Stopping
     }
 }
-
-// TODO: display fmt
+impl fmt::Display for RunState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::FirstStart => "First start",
+            Self::Ready => "Ready",
+            Self::Reloading => "Reloading",
+            Self::Stopping => "Stopping",
+        };
+        write!(f, "{name}")
+    }
+}
 
 // !- Operation errors
 
@@ -132,7 +152,6 @@ pub enum InformStartedError {
     #[error("inform_starting() must be called before inform_started()")]
     NotStarting,
 }
-
 
 /// Type alias for an  async mutable [`SharedState`].
 ///
