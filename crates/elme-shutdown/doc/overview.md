@@ -22,8 +22,9 @@ A handle can be acquired by registering a task via [`ShutdownManager::register_t
 Tasks are registered with a name to aid in identification. For example:
 
 ```rust
+# use std::error::Error;
 # #[tokio::main]
-# pub async fn main() {
+# async fn main() -> Result<(), Box<dyn Error>> {
 # pub mod elme {
 #     pub mod shutdown {
 #         pub use elme_shutdown::ShutdownManager;
@@ -32,6 +33,7 @@ Tasks are registered with a name to aid in identification. For example:
 use elme::shutdown::ShutdownManager;
 
 let shutdown_mgr = ShutdownManager::default();
+// ..
 
 // setup worker
 let worker_handle = shutdown_mgr.register_task("My custom worker")?;
@@ -39,6 +41,14 @@ let worker = MyWorker::new(worker_handle);
 
 // run worker
 tokio::spawn(async move { worker.run().await; });
+# Ok(())
+# }
+# use elme_shutdown::TaskHandle;
+# pub struct MyWorker { task_handle: TaskHandle }
+# impl MyWorker {
+#     pub fn new(task_handle: TaskHandle) -> Self { Self { task_handle } }
+#     pub async fn run(self) { }
+#     async fn do_work(&self) { }
 # }
 ```
 
