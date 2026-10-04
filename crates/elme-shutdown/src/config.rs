@@ -4,6 +4,7 @@ use lib_conf::{LibConfig, adapter::{
 }};
 use std::time::Duration;
 
+/// User configuration for `elme-shutdown`
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Copy, Clone, LibConfig)]
 pub struct ShutdownConfig {

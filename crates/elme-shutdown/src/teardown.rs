@@ -165,7 +165,7 @@ impl UnregisterHandler {
     }
 }
 
-pub type TeardownResult = Result<TeardownStats, TeardownTimeoutStats>;
+pub(crate) type TeardownResult = Result<TeardownStats, TeardownTimeoutStats>;
 
 // !- Proxied message
 

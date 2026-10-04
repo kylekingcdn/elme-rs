@@ -7,6 +7,7 @@ use crate::task::{
 
 // ! Task List
 
+/// A list containing [`TaskData`] entries
 #[derive(Debug, Clone, Default)]
 pub struct TaskList<I: Itemize>(
     pub(crate) Vec<TaskData<I>>,
@@ -54,7 +55,7 @@ impl<I: Itemize> TaskList<I> {
         self.0.sort();
     }
 
-    pub fn dump_tasks(&self) {
+    pub(crate) fn _dump_tasks(&self) {
         if !self.0.is_sorted() {
             tracing::warn!("dump_tasks() called with unsorted task list");
         }
@@ -71,6 +72,7 @@ impl<I: Itemize> From<TaskList<I>> for Vec<TaskData<I>> {
 
 // !- InstanceCount task list
 
+/// Informally, a list of (task name, instance count) pairings
 pub type TrackedTaskList = TaskList<InstanceCount>;
 
 impl TrackedTaskList {
@@ -79,10 +81,12 @@ impl TrackedTaskList {
     pub fn instances_total(&self) -> InstanceCount {
         self.0.iter().map(|t| t.inner).sum()
     }
+    /// Returns true if [`instances_total`](Self::instances_total) is `0`
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.active_task_total() == 0
     }
+    /// Returns true if [`instances_total`](Self::instances_total) is greater than `0`
     #[must_use]
     pub fn has_tasks(&self) -> bool {
         !self.is_empty()
@@ -91,18 +95,21 @@ impl TrackedTaskList {
 
 // ! TransitionInstanceCount task list
 
+/// Informally, a list of (task name, instance count remaining/total fraction) pairings
 pub type TransitioningTaskList = TaskList<TransitionInstanceCount>;
 
 impl TransitioningTaskList {
+    /// The sum of transitioned instances for all tasks
     #[must_use]
     pub fn instances_transitioned_total(&self) -> InstanceCount {
         self.0.iter().map(|t| t.inner.transitioned()).sum()
     }
+    /// The sum of untransitioned instances for all tasks
     #[must_use]
     pub fn instances_remaining_total(&self) -> InstanceCount {
         self.0.iter().map(|t| t.inner.remaining).sum()
     }
-    /// Sum of each task's instance count
+    /// Sum of each task's total instance count
     #[must_use]
     pub fn instances_total(&self) -> InstanceCount {
         self.0.iter().map(|t| t.inner.total).sum()

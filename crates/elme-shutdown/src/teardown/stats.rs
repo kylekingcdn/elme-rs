@@ -133,8 +133,6 @@ impl CommonStats {
     fn format_date(datetime: DateTime<Utc>) -> String {
         static DATETIME_FMT: &str = "%Y-%m-%d %H:%M:%S";
         datetime.with_timezone(&Local).format(DATETIME_FMT).to_string()
-
-
     }
     #[must_use]
     fn report_text(&self) -> String {

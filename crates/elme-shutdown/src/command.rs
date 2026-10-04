@@ -3,14 +3,18 @@ use std::fmt;
 /// Represents the set of supported commands
 #[derive(Debug, Copy, Clone, Eq)]
 pub enum Command {
+    /// The `Stop` command, contains parameters required to call `Stop`
     Stop(StopCommand),
+    /// The `Reload` command
     Reload,
 }
 impl Command {
+    /// True if matches `Stop`
     #[must_use]
     pub fn is_stop(&self) -> bool {
         matches!(self, Command::Stop {..})
     }
+    /// True if matches `Reload`
     #[must_use]
     pub fn is_reload(&self) -> bool {
         matches!(self, Command::Reload)
@@ -38,7 +42,8 @@ impl From<StopCommand> for Command {
 /// The parameters required to issue a `Stop` command
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct StopCommand {
-  pub exit_code: u8,
+    /// The code returned by the program upon exit
+    pub exit_code: u8,
 }
 impl fmt::Display for StopCommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -51,15 +56,21 @@ impl fmt::Display for StopCommand {
 /// The possible outcomes of sending a `Stop` command.
 #[derive(Debug, Clone)]
 pub enum StopResult {
+    /// Stop issued and stored as `issued_command`
     Issued(StopCommand),
+    /// Stop issued as pending and stored as `pending_command`
     IssuedPending(StopCommand),
+    /// Stop has already been requested and is stored as either issued or pending
     AlreadyIssued(StopCommand),
 }
 impl StopResult {
+    /// Returns `true` when `Issued` or `IssuedPending`
     #[must_use]
     pub fn was_issued(&self) -> bool {
         matches!(self, Self::Issued(_)) || matches!(self, Self::IssuedPending(_))
     }
+
+    /// Returns the inner `StopCommand` contained by each variant
     #[must_use]
     pub fn command(&self) -> StopCommand {
         match &self {
@@ -68,6 +79,8 @@ impl StopResult {
             Self::AlreadyIssued(cmd) => *cmd,
         }
     }
+
+    /// Returns the exit code of the inner `StopCommand` contained by each variant
     #[must_use]
     pub fn exit_code(&self) -> u8 {
         self.command().exit_code
@@ -77,12 +90,17 @@ impl StopResult {
 /// The possible outcomes of sending a `Reload` command.
 #[derive(Debug, Clone)]
 pub enum ReloadResult {
+    /// Reload issued and stored as `issued_command`
     Issued,
+    /// Reload issued as pending and stored as `pending_command`
     IssuedPending,
+    /// Reload has already been requested and is stored as either issued or pending
     AlreadyIssued,
+    /// Stop has previously been requested, Reload is no longer permitted
     Stopping(StopCommand),
 }
 impl ReloadResult {
+    /// Returns `true` when `Issued` or `IssuedPending`
     #[must_use]
     pub fn was_issued(&self) -> bool {
         matches!(self, Self::Issued) || matches!(self, Self::AlreadyIssued)
@@ -98,6 +116,7 @@ pub enum CommandResult {
     Reload(ReloadResult),
 }
 impl CommandResult {
+    /// Returns `true` when inner result is either `Issued` or `IssuedPending`
     #[must_use]
     pub fn was_issued(&self) -> bool {
         match &self {

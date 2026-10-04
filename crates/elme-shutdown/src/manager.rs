@@ -1,6 +1,6 @@
 use crate::{
     command::{Command, CommandResult, ReloadResult, StopCommand, StopResult},
-    config::ShutdownConfig,
+    config::{ShutdownConfig, ShutdownConfigBuilder},
     signal::SignalHandler,
     state::{
         InformStartingError, InformStartedError,
@@ -118,6 +118,17 @@ impl ShutdownManager {
         Self::new(options, multi_progress)
     }
 
+    /// Creates a new [`ShutdownConfigBuilder`]
+    ///
+    /// Identical to both [`ShutdownConfig::builder()`](ShutdownConfig::builder)
+    /// and [`ShutdownConfigBuilder::new()`](ShutdownConfigBuilder::new)
+    ///
+    /// Provided for the sole purpose of reducing one-off import clutter.
+    #[must_use]
+    pub fn config_builder() -> ShutdownConfigBuilder {
+        ShutdownConfig::builder()
+    }
+
     /// Options used to initialize `ShutdownManager`
     #[must_use]
     pub fn options(&self) -> ShutdownConfig {
@@ -200,7 +211,7 @@ impl ShutdownManager {
     /// With that, an additional guarantee can be deduced:
     /// - **Task registration never fails during startup**
     ///
-    /// Because of this added safety-net, it's recommended that all workers with a non-fluctuating 
+    /// Because of this added safety-net, it's recommended that all workers with a non-fluctuating
     /// number of instances be registered during startup (in the same fashion as the example below).
     /// - While this can certainly simplify lifecycle management, it is by no means a hard
     ///   requirement.
@@ -267,7 +278,7 @@ impl ShutdownManager {
     /// Returns a [`StopResult`].
     ///
     /// While not a conventional `Result` with `Ok`/`Err` states, a `StopResult` does represent
-    /// varying degrees of "success". Despite this, a call to `stop` will always result in either 
+    /// varying degrees of "success". Despite this, a call to `stop` will always result in either
     /// immediate or queued teardown and exit.
     /// Therefore, handling is optional.
     ///
@@ -303,7 +314,7 @@ impl ShutdownManager {
         }
         res
     }
-    
+
     /// Sends a `Reload` command
     ///
     /// # Returns
@@ -321,7 +332,7 @@ impl ShutdownManager {
     ///   - If currently in startup, saved to `pending_command` and returns
     ///     [`ReloadResult::IssuedPending`]
     ///   - If running, saved to `issued_command` and returns [`ReloadResult::Issued`]
-    ///   - **Note:** there is no case for tearing dowm as this would imply either `Stop` or
+    ///   - **Note:** there is no case for tearing down as this would imply either `Stop` or
     ///     `Reload` has been issued, which is covered by the first 2 cases.
     ///
     /// [`issued_command`]: Self::issued_command
@@ -348,7 +359,7 @@ impl ShutdownManager {
         }
         res
     }
-    
+
     /// Helper that calls either [`stop()`](Self::stop) or [`reload()`](Self::reload) based on the provided [`Command`]
     ///
     /// # Returns
@@ -400,24 +411,17 @@ impl ShutdownManager {
         self.shared_lock().pending_command()
     }
 
-    /// Current stage of app lifecycle
+    /// Current stage of the application's lifecycle
     ///
-    /// `elme-shutdown` classifies an application's lifecycle using the 3 following stages:
+    /// See the [`LifecycleStage`] docs for more information.
     ///
-    /// 1. Startup
-    ///    - The "init" stage
-    ///    - The application is getting ready to serve its intended purpose
-    /// 1. Running
-    ///    - The "ready" stage
-    ///    - After starting up, the application is serving its intended purpose
-    /// 1. Teardown
-    ///    - The "cleanup" stage
-    ///    - All work stopped, all non-globals dropped, control returns to `main`
-    /// 
+    /// # Lifecycle management
+    ///
     /// Handling of an application's lifecycle is done via:
-    /// - [`inform_starting`](ShutdownManager::inform_starting)
-    /// - [`inform_started`](ShutdownManager::inform_started)
-    /// - [Commands](#Commands)
+    /// - [`inform_starting()`](Self::inform_starting)
+    /// - [`inform_started()`](Self::inform_started)
+    /// - [`stop()`](Self::stop)
+    /// - [`reload()`](Self::reload)
     #[must_use]
     pub fn lifecycle_stage(&self) -> LifecycleStage {
         self.shared_lock().lifecycle_stage()
@@ -432,11 +436,176 @@ impl ShutdownManager {
     }
 
     // !- Task management
-    
-    /// <!--
-    /// The most straight-forward method of using a `TaskHandle` is to pass it into a worker's
-    /// constructor, and store it as a field.
-    /// -->
+
+    /// Creates a new [`TaskHandle`] for a task with the provided name
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`RegisterError`] if task registration fails.
+    ///
+    /// Task registration only fails if the attempt occurs during teardown.
+    ///
+    /// # Guarantees
+    ///
+    /// - Task registration ***never fails*** during `Startup` or `Running` stages.
+    /// - Task registration ***always fails*** during the `Teardown` stage.
+    ///
+    /// While task registration doesn't fail in the `Running` stage, it's entirely possible that
+    /// teardown is started concurrently, resulting in a failed registration, even if the state
+    /// was checked immediately prior.
+    ///
+    /// # Usage
+    ///
+    /// Workers that exist across the lifetime of your application should be built (and registered)
+    /// during startup. It therefore makes the most sense to store handles as member fields,
+    /// passing them (as owned) into the worker's constructor.
+    /// The reason for this is described in the [Guarantees](#guarantees) section.
+    ///
+    /// The [No error handling example](#no-error-handling) shows how to initialize lifelong workers
+    /// without error handling.
+    ///
+    /// # Purpose
+    ///
+    /// Task handles are used internally to keep track of which tasks (or more accurately, how many
+    /// instances of a task) are still running. This is a critical aspect of graceful shutdown, as
+    /// application exit will be delayed until all instance counters drop to 0.
+    ///
+    /// Registering a task (or cloning a handle) will increment the instance count associated with
+    /// the task name).
+    ///
+    /// Once a `TaskHandle` goes out of scope (is dropped), the counter is decremented.
+    ///
+    /// Therefore, for graceful shutdown to work correctly, it's critical that all `TaskHandle`s
+    /// are provided to workers as owned and not borrowed or cloned.
+    /// (See the [Initializing concurrent workers](#initializing-concurrent-workers) example below
+    /// for handling this scenario)
+    ///
+    /// # Examples
+    ///
+    /// ## Outside startup
+    ///
+    /// Here, we register a task outside startup, where registration can fail.
+    ///
+    /// The worker is created from another, pre-existing worker (that has its own task handle).
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    #[doc = include_str!("../doc/elme_proxy.rs")]
+    /// use elme::shutdown::TaskHandle;
+    ///
+    /// # let shutdown_mgr = elme_shutdown::ShutdownManager::default();
+    /// # pub struct Worker { task_handle: TaskHandle };
+    /// # impl Worker {
+    /// # pub fn new(task_handle: TaskHandle) -> Self { Self { task_handle }}
+    /// # async fn run(self) {}
+    /// # async fn run_parent(self) {
+    /// // worker only gets built (and runs) when registration succeeds
+    /// if let Ok(task_handle) = self.task_handle.register_task("Child worker") {
+    ///     let worker = Worker::new(task_handle);
+    ///     tokio::spawn(async move { worker.run().await; });
+    /// }
+    /// # }}
+    /// # }
+    /// ```
+    ///
+    /// ## No error handling
+    ///
+    /// If all instances of a worker are created during startup, error handling can be side-stepped
+    /// due to the previously outlined [guarantees](#guarantees).
+    ///
+    /// For workers that are built outside of main (e.g. from a parent worker), it's still
+    /// recommended to  implement error handling, even if the parent worker itself is only
+    /// constructed from `main()`.
+    /// This is recommended as your architecture may change and the resulting regression might not
+    /// present itself immediately.
+    /// - **It's also very easy for child workers!** (see the previous example for reference)
+    ///
+    /// ```
+    #[doc = include_str!("../doc/elme_proxy.rs")]
+    /// use elme::shutdown::{ShutdownManager, TaskHandle};
+    ///
+    /// pub struct MyWorker {
+    ///      task_handle: TaskHandle,
+    /// }
+    /// impl MyWorker {
+    ///      pub fn new(task_handle: TaskHandle) -> Self {
+    ///          Self { task_handle }
+    ///      }
+    ///      pub async fn run(self) {
+    ///          // ...
+    ///          # self.task_handle.wait_for_teardown_start().await;
+    ///          # let _ = self.task_handle.manager().stop(0);
+    ///      }
+    /// }
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let shutdown_mgr = ShutdownManager::default();
+    ///     shutdown_mgr.inform_starting();
+    ///
+    ///     // since task is registered during startup (in the same thread) we can safely unwrap
+    ///     let my_worker_handle = shutdown_mgr.register_task("My worker").unwrap();
+    ///     let my_worker = MyWorker::new(my_worker_handle);
+    ///
+    ///     // done startup
+    ///     shutdown_mgr.inform_started();
+    ///     // start worker
+    ///     tokio::spawn(async move { my_worker.run().await; });
+    ///
+    ///     // wait for teardown completion
+    ///     shutdown_mgr.wait_for_teardown_done().await;
+    /// }
+    /// ```
+    ///
+    /// ## Initializing concurrent workers
+    ///
+    /// If a single handle is cloned to populate multiple instances of a worker in one go,
+    /// the original handle should be manually dropped (or strategically scoped) to prevent
+    /// lingering handles.
+    ///
+    /// **NOTE:** This scenario can be completely avoided by simply calling `register_task` from
+    /// within the loop. This example is provided to emphasize the importance of handle lifetimes.
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn Error>> {
+    #[doc = include_str!("../doc/elme_proxy.rs")]
+    /// use elme::shutdown::ShutdownManager;
+    ///
+    /// const CONCURRENCY: usize = 4;
+    ///
+    /// let shutdown_mgr = ShutdownManager::default();
+    /// shutdown_mgr.inform_starting()?;
+    ///
+    /// let mut workers = Vec::new();
+    /// let handle = shutdown_mgr.register_task("Concurrent worker")?;
+    /// for _ in (0..CONCURRENCY) {
+    ///     let worker = MyWorker::new(handle.clone()); // handle is cloned
+    ///     workers.push(worker);
+    /// }
+    /// drop(handle); // **CRITICAL** - handle must be manually dropped
+    ///
+    /// // done startup
+    /// shutdown_mgr.inform_started()?;
+    ///
+    /// // run workers in background
+    /// for worker in workers {
+    ///     tokio::spawn(async move { worker.run().await; });
+    /// }
+    /// # Ok(())
+    /// # }
+    /// # use elme_shutdown::TaskHandle;
+    /// # pub struct MyWorker { task_handle: TaskHandle }
+    /// # impl MyWorker {
+    /// #      pub fn new(task_handle: TaskHandle) -> Self { Self { task_handle } }
+    /// #      pub async fn run(self) {
+    /// #          self.task_handle.wait_for_teardown_start().await;
+    /// #          let _ = self.task_handle.manager().stop(0);
+    /// #      }
+    /// # }
+    /// ```
     pub fn register_task(&self, task_name: &'static str) -> Result<TaskHandle, RegisterError> {
         SharedState::register_task(&self.shared, task_name)
     }
@@ -451,7 +620,7 @@ impl ShutdownManager {
         task_list.sort_tasks();
         task_list
     }
-    
+
     /// Total number of tasks (distinct task names) with `>= 1` instances.
     #[must_use]
     pub fn active_task_count(&self) -> usize {
@@ -486,9 +655,9 @@ impl ShutdownManager {
     /// Returns a [`Future`] which will be resolved once teardown starts.
     ///
     /// If teardown has already started, the future will resolve immediately.
-    /// 
+    ///
     /// This is typically used by tasks to trigger their graceful stop logic.
-    /// 
+    ///
     /// For convenience, [`TaskHandle`] also contains a
     /// [`wait_for_teardown_start()`](TaskHandle::wait_for_teardown_start) method
     /// providing identical functionality.
@@ -500,14 +669,14 @@ impl ShutdownManager {
     /// Returns a [`Future`] which will be resolved once teardown completes successfully (all
     /// `TaskHandle`'s dropped).
     /// If teardown has already finished, the future will resolve immediately.
-    /// 
+    ///
     /// This is typically used from `main()` to delay exit/restart until all tasks have
     /// finished gracefully.
-    /// 
-    /// Unlike `wait_for_teardown_start()`, `TaskHandle` does not provide a 
-    /// `wait_for_teardown_done()` method, as this usage would almost always be an anti-pattern (the
-    /// future will never complete because the associated handle likely remains in scope, preventing
-    /// teardown from finishing).
+    ///
+    /// Unlike [`wait_for_teardown_start()`](Self::wait_for_teardown_start), [`TaskHandle`] does not
+    /// provide a `wait_for_teardown_done()` method, as this usage would almost always be an
+    /// anti-pattern (the future will never complete because the associated handle likely remains in
+    /// scope, preventing teardown from finishing).
     pub fn wait_for_teardown_done(&self) -> impl Future<Output=()> {
         let token = self.shared_lock().teardown_done_token();
         token.cancelled_owned()
@@ -531,11 +700,7 @@ impl ShutdownManager {
     /// ```
     /// # #[tokio::main]
     /// # pub async fn main() {
-    /// # pub mod elme {
-    /// #     pub mod shutdown {
-    /// #         pub use elme_shutdown::ShutdownManager as ShutdownManager;
-    /// #     }
-    /// # };
+    #[doc = include_str!("../doc/elme_proxy.rs")]
     /// use elme::shutdown::ShutdownManager;
     ///
     /// let shutdown_manager = ShutdownManager::default()
@@ -596,11 +761,7 @@ impl ShutdownManager {
     /// ```
     /// # #[tokio::main]
     /// # pub async fn main() {
-    /// # pub mod elme {
-    /// #     pub mod shutdown {
-    /// #         pub use elme_shutdown::ShutdownManager as ShutdownManager;
-    /// #     }
-    /// # };
+    #[doc = include_str!("../doc/elme_proxy.rs")]
     /// use elme::shutdown::ShutdownManager;
     ///
     /// let shutdown_manager = ShutdownManager::default()

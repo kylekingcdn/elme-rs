@@ -14,8 +14,10 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 // !- Errors
 
+/// Possible error types for calls to [`register_task()`](crate::ShutdownManager::register_task)
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterError {
+    /// Failed because the application is currently tearing down
     #[error("Failed to register task '{0}'. Currently tearing down.")]
     TearingDown(&'static str),
 }
@@ -36,11 +38,15 @@ pub(crate) enum TransitionError {
 
 /// Keeps track of one or more groups of instances for a given task
 pub trait Itemize: fmt::Debug + fmt::Display + Copy + Clone + Default + PartialEq + Eq + PartialOrd + Ord {
+    /// Whether this group of instances is considered active
+    ///
+    /// The interpretation of 'active' is of the implementing type's choice.
     fn is_active(&self) -> bool;
 }
 
 // !- Task instance count newtype
 
+/// `usize` new-type representing an instance count for a task/worker
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InstanceCount(usize);
 
@@ -89,6 +95,7 @@ impl From<InstanceCount> for usize {
     }
 }
 impl Itemize for InstanceCount {
+    /// A task instance count is considered active when greater than `0`
     fn is_active(&self) -> bool {
         self.0 > 0
     }
@@ -97,6 +104,9 @@ impl Itemize for InstanceCount {
 // !- Task transitioning instance counts
 
 /// [`TransitionInstanceCount`] represents the distribution of a task's instances between 2 possible states.
+///
+/// Internally, this is used during teardown to keep track of how many instances of a task have
+/// gracefully stopped vs. how many are still running.
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TransitionInstanceCount {
     /// number of instances that still need to be transitioned
@@ -111,19 +121,24 @@ impl TransitionInstanceCount {
             total,
         }
     }
+    /// The number of instances that have not yet transitioned
     #[must_use]
     pub fn remaining(&self) -> InstanceCount {
         self.remaining
     }
+    /// The total number of instances
+    ///
+    /// Equivalent to `remaining + transitioned`.
     #[must_use]
     pub fn total(&self) -> InstanceCount {
         self.total
     }
-    /// # of instances transitioned so far
+    /// The number of instances transitioned so far
     #[must_use]
     pub fn transitioned(&self) -> InstanceCount {
         self.total - self.remaining
     }
+    /// Returns true when there are no instances left to transition
     #[must_use]
     pub fn is_transitioned(&self) -> bool {
         self.remaining.0 == 0
@@ -137,7 +152,7 @@ impl TransitionInstanceCount {
         }
     }
 
-    /// Returns a string representing the progress as a fraction
+    /// Returns a string representing the progress in the form of a fraction
     ///
     /// ```text
     /// "{transitioned}/{total}"
@@ -146,13 +161,14 @@ impl TransitionInstanceCount {
     /// E.g. where `n == total`, transitions through:
     ///
     /// ```text
-    /// 0/n, 1/n, ..., n-1/n, n/n
+    /// 0/n, 1/n, 2/n, ..., (n-1)/n, n/n
     /// ```
     #[must_use]
     pub fn as_transitioned_fraction(&self) -> String {
         format!("{}/{}", self.transitioned(), self.total)
     }
-    /// Returns a string representing the progress as a fraction
+
+    /// Returns a string representing the remainder of progress in the form of a fraction
     ///
     /// ```text
     /// "{remaining}/{total}"
@@ -161,7 +177,7 @@ impl TransitionInstanceCount {
     /// E.g. where `n == total`, transitions through:
     ///
     /// ```text
-    /// n/n, n-1/n, ..., 1/n, 0/n
+    /// n/n, (n-1)/n, ..., 2/n, 1/n, 0/n
     /// ```
     #[must_use]
     pub fn as_remaining_fraction(&self) -> String {
@@ -205,6 +221,9 @@ impl Itemize for TransitionInstanceCount {
 // !- Task Data
 
 /// Associates a task (by name) with an Itemize struct
+///
+/// Internally, this is used to provide support for conversion from Maps of
+/// `[ task name->instance counts ]` to Lists of `[ TaskData(task name, instance counts) ]`
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TaskData<I: Itemize> {
     task_name: &'static str,
@@ -224,12 +243,20 @@ impl<I: Itemize> TaskData<I> {
             inner,
         }
     }
+    /// The name of the task
     pub fn task_name(&self) -> &'static str {
         self.task_name
     }
+    /// Whether the underlying type is active
+    ///
+    /// The definition of `active` is up to the inner type.
+    ///
+    /// See the underlying type for the definition.
     pub fn is_active(&self) -> bool {
         self.inner.is_active()
     }
+
+    /// Returns the inner instance count type
     pub fn inner(&self) -> I {
         self.inner
     }
@@ -247,9 +274,11 @@ impl<I: Itemize> From<(&'static str, I)> for TaskData<I> {
 
 // ! Tracked task
 
+/// Informally, a pairing containing a task name and number of instances
 pub type TrackedTask = TaskData<InstanceCount>;
 
 impl TrackedTask {
+    /// The inner [`InstanceCount`]
     #[must_use]
     pub fn instance_count(&self) -> InstanceCount {
         self.inner
@@ -258,25 +287,33 @@ impl TrackedTask {
 
 // ! Transitioning task
 
+/// Informally, a pairing of a task name with a (remaining, total) instance count fraction
 pub type TransitioningTask = TaskData<TransitionInstanceCount>;
 
 impl TransitioningTask {
+    /// The number of instances transitioned so far
     #[must_use]
     pub fn transitioned_count(&self) -> InstanceCount {
         self.inner.transitioned()
     }
+    /// The number of instances that have not yet transitioned
     #[must_use]
     pub fn remaining_count(&self) -> InstanceCount {
         self.inner.remaining
     }
+    /// The total number of instances
+    ///
+    /// Equivalent to `remaining_count + transitioned_count`.
     #[must_use]
     pub fn total_count(&self) -> InstanceCount {
         self.inner.total
     }
+    /// Returns true when there are no instances left to transition
     #[must_use]
     pub fn is_fully_transitioned(&self) -> bool {
         !self.is_active()
     }
+    /// Returns a new `TransitioningTask` with `remaining` and `transitioned` swapped
     #[must_use]
     pub fn as_inverted(&self) -> Self {
         Self::new_with_data(self.task_name, self.inner.as_inverted())

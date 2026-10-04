@@ -3,7 +3,12 @@ There are strict checks in place to ensure application state remains consistent.
 Sticking to the following pattern should avoid all possible error scenarios:
 
 ```rust
-use elme_shutdown::{ShutdownManager, TaskHandle};
+# pub mod elme {
+#     pub mod shutdown {
+#         pub use elme_shutdown::{ShutdownManager, TaskHandle};
+#     }
+# }
+use elme::shutdown::{ShutdownManager, TaskHandle};
 use std::error::Error;
 use std::process::ExitCode;
 

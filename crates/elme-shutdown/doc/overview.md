@@ -20,11 +20,22 @@ A [`TaskHandle`] is used to represent a single instance of a background worker.
 A handle can be acquired by registering a task via [`ShutdownManager::register_task`].
 Tasks are registered with a name to aid in identification. For example:
 
-```rust,ignore
-let shutdown_mgr = ShutdownManager::default();
-
-let worker = MyWorker::new(shutdown_mgr.register_task("My custom worker")?);
-tokio::spawn(async move { notifier.run().await; });
+```rust
+/// # #[tokio::main]
+/// # pub async fn main() {
+/// # pub mod elme {
+/// #     pub mod shutdown {
+/// #         pub use elme_shutdown::ShutdownManager;
+/// #     }
+/// # }
+/// use elme::shutdown::ShutdownManager;
+///
+/// let shutdown_mgr = ShutdownManager::default();
+///
+/// let worker_handle = shutdown_mgr.register_task("My custom worker")?;
+/// let worker = MyWorker::new(worker_handle);
+/// tokio::spawn(async move { worker.run().await; });
+/// # }
 ```
 
 Upon registration, a counter for the number of running instances for a given task (by name) is
@@ -243,7 +254,7 @@ Timeout:       <span style="font-weight:bold;">15s</span>
 
 The [`tracing::Level`] used for timed-out teardown reports can be changed
 via [`log_timeout_stats_level`](ShutdownConfig::log_timeout_stats_level). The default
-is `Level::INFO`.
+is `Level::ERROR`.
 
 Alternatively, timeout report output can be entirely disabled with
 [`log_timeout_stats`](ShutdownConfig::log_timeout_stats).

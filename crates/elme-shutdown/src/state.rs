@@ -21,67 +21,114 @@ use tokio_util::sync::CancellationToken;
 
 // !- State enums
 
+/// `elme-shutdown` classifies an application's lifecycle using the 3 following stages:
+///
+/// 1. `Startup`
+///    - The "init" stage
+///    - The application is getting ready to serve its intended purpose
+/// 1. `Running`
+///    - The "ready" stage
+///    - After starting up, the application is serving its intended purpose
+/// 1. `Teardown`
+///    - The "cleanup" stage
+///    - All work stopped, all non-globals dropped, control returns to `main`
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LifecycleStage {
+    /// The application is getting ready to serve its intended purpose
     Startup,
+    /// The application is serving its intended purpose
     Running,
+    /// The application is stopping work. Non-globals become dropped and control returns to `main`
     Teardown,
 }
 impl LifecycleStage {
+    /// Returns true if matches `Startup` variant
     #[must_use]
     pub fn is_startup(&self) -> bool {
         *self == Self::Startup
     }
+    /// Returns true if matches `Running` variant
     #[must_use]
     pub fn is_running(&self) -> bool {
         *self == Self::Running
     }
+    /// Returns true if matches `Teardown` variant
     #[must_use]
     pub fn is_teardown(&self) -> bool {
         *self == Self::Teardown
     }
 }
 
+/// Describes the current action being taken by the application.
+///
+/// # Usage
+///
+/// While not used internally, it is provided as an additional method of inferring
+/// application state, and may prove iseful for logging, reporting, etc.
+///
+/// # Comparison to `LifecycleStage`
+///
+#[doc = include_str!("../doc/run_state.md")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RunState {
+    /// The application is in it's first `Startup` stage
     FirstStart,
+    /// The application is currently running, no commands are issued or pending
     Ready,
+    /// The application is currently reloading
     Reloading,
+    /// The application is currently stopping
     Stopping,
 }
 impl RunState {
+    /// Returns true if matches `FirstStart` variant
     #[must_use]
     pub fn is_first_start(&self) -> bool {
         *self == Self::FirstStart
     }
+    /// Returns true if matches `Ready` variant
     #[must_use]
     pub fn is_ready(&self) -> bool {
         *self == Self::Ready
     }
+    /// Returns true if matches `Reloading` variant
     #[must_use]
     pub fn is_reloading(&self) -> bool {
         *self == Self::Reloading
     }
+    /// Returns true if matches `Stopping` variant
     #[must_use]
     pub fn is_stopping(&self) -> bool {
         *self == Self::Stopping
     }
 }
 
+// TODO: display fmt
+
 // !- Operation errors
 
+/// Possible error types for calls to [`inform_starting()`](crate::ShutdownManager::inform_starting)
 #[derive(Debug, thiserror::Error)]
 pub enum InformStartingError {
-    #[error("Cannot be called before teardown completes")]
-    InvalidState,
+    /// `inform_starting()` was called multiple times in a row
     #[error("Inform starting was already called")]
     AlreadyStarting,
+    /// Failed because the current state does not support entering `Startup`
+    ///
+    /// Valid states are:
+    /// - At very first startup sequence
+    /// - After teardown completes (if command == `Reload`)
+    #[error("Cannot be called before teardown completes")]
+    InvalidState,
+    /// Failed because the current command is not `Reload`
     #[error("Cannot be called after first startup without an issued reload command. Currently issued command: {0}")]
     SubsequentStartNonReload(Command),
 }
 
+/// Possible error types for calls to [`inform_started()`](crate::ShutdownManager::inform_started)
 #[derive(Debug, thiserror::Error)]
 pub enum InformStartedError {
+    /// Failed because `inform_started()` was called without first calling `inform_starting()`
     #[error("inform_starting() must be called before inform_started()")]
     NotStarting,
 }
@@ -124,8 +171,8 @@ pub(crate) struct SharedState {
     /// the lifecycle stage, and any dependent signals (`app_should_start`, `is_tearing_down`, etc)
     /// remain constant throughout startup.
     ///
-    /// Once startup is finished (by calling `inform_started`), `pending_command` will become the `issued_command`,
-    /// will begin to be handled
+    /// Once startup is finished (by calling `inform_started`), `pending_command` will become the
+    /// `issued_command` and be handled
     pending_command: Option<Command>,
 
     hook_deps: HookDeps,
