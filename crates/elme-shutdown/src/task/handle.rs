@@ -24,7 +24,7 @@ use std::fmt;
 ///
 /// `TaskHandle` does not implement `Clone`, as this would result in task registration which
 /// is inherently fallible.
-/// However, it does provide a [`try_clone()`](Self::try_clone] method.
+/// However, it does provide a [`try_clone()`](Self::try_clone) method.
 /// This is identical to registering a new task of the same name.
 ///
 /// ## Examples
@@ -34,20 +34,6 @@ use std::fmt;
 /// ```
 #[doc = include_str!("../../doc/elme_proxy.rs")]
 /// use elme::shutdown::{ShutdownManager, TaskHandle};
-///
-/// pub struct MyWorker {
-///      task_handle: TaskHandle,
-/// }
-/// impl MyWorker {
-///      pub fn new(task_handle: TaskHandle) -> Self {
-///          Self { task_handle }
-///      }
-///      pub async fn run(self) {
-///          // ...
-///          # self.task_handle.wait_for_teardown_start().await;
-///          # let _ = self.task_handle.manager().stop(0);
-///      }
-/// }
 ///
 /// #[tokio::main]
 /// async fn main() {
@@ -65,6 +51,20 @@ use std::fmt;
 ///
 ///     // wait for teardown completion
 ///     shutdown_mgr.wait_for_teardown_done().await;
+/// }
+///
+/// pub struct MyWorker {
+///      task_handle: TaskHandle,
+/// }
+/// impl MyWorker {
+///      pub fn new(task_handle: TaskHandle) -> Self {
+///          Self { task_handle }
+///      }
+///      pub async fn run(self) {
+///          // ...
+///          # self.task_handle.wait_for_teardown_start().await;
+///          # let _ = self.task_handle.manager().stop(0);
+///      }
 /// }
 /// ```
 pub struct TaskHandle {
@@ -103,12 +103,6 @@ impl TaskHandle {
         SharedState::register_task(&self.shared, task_name)
     }
 
-    /// The task name assigned during registration
-    #[must_use]
-    pub fn task_name(&self) -> &'static str {
-        self.task_name
-    }
-
     /// Creates a new [`TaskHandle`] for a task with the same name as `self`
     ///
     /// This is identical to registering a task with the same name.
@@ -134,6 +128,19 @@ impl TaskHandle {
     }
     
     /// The task name assigned during registration
+    #[must_use]
+    pub fn task_name(&self) -> &'static str {
+        self.task_name
+    }
+
+    /// Provides access to the [`ShutdownManager`]
+    ///
+    /// Resolving a manager from a `TaskHandle` makes it simple to perform actions from workers
+    /// (such as triggering a shutdown), without polluting your entire call tree with
+    /// `ShutdownManager` params.
+    ///
+    /// There is no additional overhead incurred by accessing a manager using a task handle.
+    /// Internally, it is identical to calling `clone()` on a manager.
     #[must_use]
     pub fn manager(&self) -> ShutdownManager {
         self.shared.clone().into()

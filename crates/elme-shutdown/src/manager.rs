@@ -29,11 +29,14 @@ use std::sync::{Arc, Mutex, MutexGuard};
 ///
 /// ## Access via `TaskHandle`
 ///
-/// You can also access the `ShutdownManager` instance from the [`manager()`](TaskHandle::manager) method provided by a [`TaskHandle`].
+/// You can also access the `ShutdownManager` instance from the [`manager()`](TaskHandle::manager)
+/// method provided by a [`TaskHandle`].
 ///
-/// Resolving a manager from a `TaskHandle` makes it simple to perform actions from workers (such as triggering a shutdown), without polluting your entire call tree with `ShutdownManager` params.
+/// Resolving a manager from a `TaskHandle` makes it simple to perform actions from workers (such as
+/// triggering a shutdown), without polluting your entire call tree with `ShutdownManager` params.
 ///
-/// There is no additional overhead incurred by accessing a manager using a task handle. Internally, it is identical to calling `clone()` on a manager.
+/// There is no additional overhead incurred by accessing a manager using a task handle. Internally,
+/// it is identical to calling `clone()` on a manager.
 #[derive(Clone)]
 pub struct ShutdownManager {
     shared: LockingSharedState,
@@ -68,7 +71,8 @@ impl ShutdownManager {
     ///
     /// This **must not** be called more than once throughout the lifetime of your application.
     ///
-    /// If [`ShutdownConfig::handle_signals`](crate::ShutdownConfig::handle_signals) is enabled, this will additionally spawn the signal monitor.
+    /// If [`ShutdownConfig::handle_signals`](crate::ShutdownConfig::handle_signals) is enabled,
+    /// this will additionally spawn the signal monitor.
     ///
     /// # Thread-safety
     ///
@@ -85,7 +89,8 @@ impl ShutdownManager {
 
     /// Initializes `elme-shutdown` with options and a user-provided [`indicatif::MultiProgress`].
     ///
-    /// The standard [`init()`](Self::init) fn will construct a new `MultiProgress` instance (if the `progress` feature is enabled).
+    /// The standard [`init()`](Self::init) fn will construct a new `MultiProgress` instance (if
+    /// the `progress` feature is enabled).
     ///
     /// If your app is already serving progress bars via [`indicatif`], you can provide
     /// your existing `MultiProgress` to (hopefully) retain dual-support.
@@ -94,8 +99,8 @@ impl ShutdownManager {
     ///
     /// # Using `tracing-subscriber` `Writer`'s
     ///
-    /// Multiple [`tracing-subscriber`](::tracing_subscriber) `Writer` layers made for use with [`indicatif`](::indicatif) should not
-    /// be installed simultaneously, this includes:
+    /// Multiple [`tracing-subscriber`](::tracing_subscriber) `Writer` layers made for use
+    /// with [`indicatif`](::indicatif) should not be installed simultaneously, this includes:
     /// - `elme_shutdown::ProgressWriter` (gated by `progress-writer`)
     /// - `tracing-indicatif::IndicatifWriter`
     ///
@@ -105,9 +110,11 @@ impl ShutdownManager {
     ///
     /// # Inner `MultiProgress` access
     ///
-    /// The underlying [`MultiProgress`](indicatif::MultiProgress) can be accessed via [`progress_bars()`](Self::progress_bars).
+    /// The underlying [`MultiProgress`](indicatif::MultiProgress) can be accessed
+    /// via [`progress_bars()`](Self::progress_bars).
     ///
-    /// This is supported for both the [`init()`](Self::init) and [`init_with_multi_progress()`](Self::init_with_multi_progress) fns.
+    /// This is supported for both the [`init()`](Self::init) and
+    /// [`init_with_multi_progress()`](Self::init_with_multi_progress) fns.
     #[cfg(feature = "progress")]
     #[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
     #[must_use]
@@ -184,7 +191,8 @@ impl ShutdownManager {
 
     /// Whether or not the application should start & run.
     ///
-    /// This will always return true, so long as [`issued_command`](Self::issued_command) is not `Stop`.
+    /// This will always return true, so long as [`issued_command`](Self::issued_command)
+    /// is not `Stop`.
     ///
     /// Once this does return `false`, it is guaranteed to not return `true` for the remainder
     /// of the application's lifetime - as no other commands can be issued after `Stop`.
@@ -287,12 +295,15 @@ impl ShutdownManager {
     /// - If either [`issued_command`] or [`pending_command`] contain `Stop`,
     ///   returns [`StopResult::AlreadyIssued`]
     /// - Otherwise,
-    ///   - If currently in startup, saved to `pending_command` and returns [`StopResult::IssuedPending`]
+    ///   - If currently in startup, saved to `pending_command` and
+    ///     returns [`StopResult::IssuedPending`]
     ///   - If running or tearing down, saved to `issued_command` and returns [`StopResult::Issued`]
     ///
-    /// **Note**: Issuing stop will directly replace an issued or pending `Reload`, as long as the reload hasn't already entered startup.
+    /// **Note**: Issuing stop will directly replace an issued or pending `Reload`, as long as the
+    /// reload hasn't already entered startup.
     ///
-    /// The inner [`StopCommand`] contained in each variant will be the previously issued `Stop`, if any, or the command provided.
+    /// The inner [`StopCommand`] contained in each variant will be the previously issued `Stop`, if
+    /// any, or the command provided.
     ///
     /// [`issued_command`]: Self::issued_command
     /// [`pending_command`]: Self::pending_command
@@ -362,11 +373,13 @@ impl ShutdownManager {
         res
     }
 
-    /// Helper that calls either [`stop()`](Self::stop) or [`reload()`](Self::reload) based on the provided [`Command`]
+    /// Helper that calls either [`stop()`](Self::stop) or [`reload()`](Self::reload) based on the
+    /// provided [`Command`]
     ///
     /// # Returns
     ///
-    /// Returns a [`CommandResult`], an enum containing a variant for the type returned by each respective dispatched fn.
+    /// Returns a [`CommandResult`], an enum containing a variant for the type returned by each
+    /// respective dispatched fn.
     #[must_use]
     pub fn issue_command(&self, command: Command) -> CommandResult {
         match command {
@@ -390,7 +403,8 @@ impl ShutdownManager {
     /// # Issued vs. Pending
     ///
     /// If a command is issued while the application is in its startup stage, it will be
-    /// stored to [`pending_command`](Self::pending_command) until startup completes ([`inform_started`](Self::inform_started) is called).
+    /// stored to [`pending_command`](Self::pending_command) until startup completes
+    /// ([`inform_started`](Self::inform_started) is called).
     ///
     /// Once startup completes, the pending command will replace the issued command (if any),
     /// and teardown will begin.
@@ -404,7 +418,8 @@ impl ShutdownManager {
     /// # Issued vs. Pending
     ///
     /// If a command is issued while the application is in its startup stage, it will be
-    /// stored to [`pending_command`](Self::pending_command) until startup completes ([`inform_started`](Self::inform_started) is called).
+    /// stored to [`pending_command`](Self::pending_command) until startup completes
+    /// ([`inform_started`](Self::inform_started) is called).
     ///
     /// Once startup completes, the pending command will replace the issued command (if any),
     /// and teardown will begin.
@@ -762,7 +777,8 @@ impl ShutdownManager {
     ///
     /// # Parameters
     ///
-    /// The provided fn receives a single parameter: [`&TeardownTimeoutStats`](TeardownTimeoutStats).
+    /// The provided fn receives a single parameter:
+    /// [`&TeardownTimeoutStats`](TeardownTimeoutStats).
     ///
     /// # Example
     ///
