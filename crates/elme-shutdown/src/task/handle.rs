@@ -4,6 +4,8 @@ use crate::{
     task::RegisterError,
 };
 
+use std::fmt;
+
 // !- TODO: add support for instance ids (for logging/tracing spans, etc)
 /// A [`TaskHandle`] is used to represent a single instance of a background worker.
 ///
@@ -145,5 +147,12 @@ impl Clone for TaskHandle {
 impl Drop for TaskHandle {
     fn drop(&mut self) {
         SharedState::unregister_task(&self.shared, self.task_name);
+    }
+}
+impl fmt::Debug for TaskHandle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TaskHandle")
+         .field("task_name", &self.task_name)
+         .finish()
     }
 }
