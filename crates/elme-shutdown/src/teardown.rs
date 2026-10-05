@@ -104,10 +104,10 @@ impl UnregisterHandler {
         );
 
         while let Some(msg) = self.rx.recv().await {
-            tracing::debug!("UnregisterHandler got message: {msg:?}");
+            tracing::trace!("UnregisterHandler got message: {msg:?}");
             match msg {
                 UnregisterMessage::Timeout => {
-                    tracing::warn!("Unregister handler has timed out - wrapping up");
+                    tracing::debug!("Unregister handler has timed out - wrapping up");
                     break;
                 }
                 UnregisterMessage::Unregister(task_name) => {
@@ -118,8 +118,8 @@ impl UnregisterHandler {
 
                     hook_dispatcher.on_task_unregistered(&self.transition_map, task_name);
 
+                    // teardown done
                     if !self.transition_map.has_active_tasks() {
-                        tracing::info!("All tasks have finished");
                         break;
                     }
                 }
@@ -208,15 +208,15 @@ impl MessageProxy {
         }
     }
     pub(crate) async fn start(self, rx: broadcast::Receiver<RegistrationMessage>) {
-        tracing::info!("Starting TeardownMonitor message proxy");
+        tracing::trace!("Starting TeardownMonitor message proxy");
 
         tokio::select! {
             biased;
             () = self.finished_token.cancelled() => {
-                tracing::info!("MessageProxy got finished notification from handler");
+                tracing::trace!("MessageProxy got finished notification from handler");
             }
             () = tokio::time::sleep(self.timeout) => {
-                tracing::info!("MessageProxy timed out");
+                tracing::debug!("Teardown time-out reached - notifying handler");
                 if let Err(error) = self.tx.send(UnregisterMessage::Timeout) {
                     tracing::error!("Failed to send timeout message: {error}");
                 }
@@ -237,7 +237,7 @@ impl MessageProxy {
                     tracing::error!("MessageProxy ignoring register message for task: {task_name}");
                 }
                 RegistrationMessage::Unregister(task_name) => {
-                    tracing::debug!("MessageProxy forwarding unregister message for task: {task_name}");
+                    tracing::trace!("MessageProxy forwarding unregister message for task: {task_name}");
                     if let Err(error) = tx.send(UnregisterMessage::Unregister(task_name)) {
                         tracing::error!("Failed to forward unregister message: {error}");
                     }

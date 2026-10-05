@@ -159,10 +159,10 @@ impl TeardownHook for TeardownLogHook {
         transition_map: &TransitioningTaskMap,
         task_name: &'static str,
     ) {
-        let counts = transition_map.0.get(task_name).unwrap();
-        tracing::info!("Task instance finished: {task_name}. Remaining {task_name} instances: {}", counts.as_remaining_fraction());
+        //let counts = transition_map.0.get(task_name).unwrap();
+        tracing::debug!("Task instance finished: {task_name}");
 
-        if let Some(level) = self.opts.tasks_level {
+        if let Some(level) = self.opts.tasks_level && transition_map.has_active_tasks() {
             let mut rem = transition_map.as_list().into_active_filtered();
             rem.sort_tasks();
             let name_sty = Style::new().bold();
@@ -186,7 +186,7 @@ impl TeardownHook for TeardownLogHook {
 
     fn on_finished(&self, stats: &TeardownStats) {
         tracing::info!("All tasks gracefully torn down.");
-        tracing::info!("Teardown completed in {} ms", stats.duration().as_millis());
+        tracing::trace!("Teardown completed in {} ms", stats.duration().as_millis());
 
         let task_count = stats.total_tasks();
         tracing::info!(

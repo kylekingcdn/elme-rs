@@ -325,6 +325,8 @@ impl SharedState {
     }
 
     pub(crate) fn inform_starting(shared: &LockingSharedState) -> Result<(),InformStartingError> {
+        tracing::debug!("inform_starting() called");
+
         let mut locked = shared.lock().unwrap();
 
         if let Some(token) = &locked.startup_done_token {
@@ -368,6 +370,8 @@ impl SharedState {
         }
     }
     pub(crate) fn inform_started(shared: &LockingSharedState) -> Result<(), InformStartedError> {
+        tracing::debug!("inform_started() called");
+
         let mut locked = shared.lock().unwrap();
 
         if locked.startup_in_progress() {
@@ -385,7 +389,7 @@ impl SharedState {
             drop(locked);
 
             if let Some(cmd) = pending_cmd {
-                tracing::info!("Handling previously pending command now: {cmd}");
+                tracing::info!(%cmd, "Processing pending command: {cmd}");
                 match cmd {
                     Command::Stop(..) |
                     Command::Reload => {
@@ -400,6 +404,7 @@ impl SharedState {
     }
 
     pub(crate) fn start_teardown(shared: &LockingSharedState) {
+        tracing::info!("Pre-teardown is starting now");
         let locked = shared.lock().unwrap();
         assert!(locked.startup_done_token.as_ref().is_some_and(CancellationToken::is_cancelled));
         assert!(!locked.teardown_start_token.is_cancelled());
@@ -410,6 +415,7 @@ impl SharedState {
         shared.lock().unwrap().teardown_start_token.cancel();
     }
     pub(crate) fn finish_teardown(shared: &LockingSharedState) {
+        tracing::info!("Post-teardown complete, wrapping up");
         let mut locked = shared.lock().unwrap();
         assert!(locked.startup_done_token.as_ref().is_some_and(CancellationToken::is_cancelled));
         assert!(locked.teardown_start_token.is_cancelled());
@@ -441,7 +447,7 @@ impl SharedState {
         tokio::spawn(async move {
             // handle termination on timeout
             if let Err(_stats) = monitor.start().await {
-                tracing::error!("Teardown timed out while waiting for tasks to gracefully stop.");
+                tracing::debug!("Teardown timed out while waiting for tasks to gracefully stop.");
                 tracing::warn!("Terminating now.");
                 process::exit(1);
             }
@@ -515,10 +521,10 @@ impl SharedState {
 
     /// promotes the pending command (if one exists), to issued
     fn promote_pending_command(&mut self) -> Option<Command> {
-        if let Some(pending) = self.pending_command {
+        if self.pending_command.is_some() {
             assert!(self.startup_done(), "Pending commands can't be processed during startup");
             assert!(self.issued_command.is_none(), "Pending commands shouldn't coexist with issued commands outside of startup");
-            tracing::info!(cmd=%pending, "Processing pending command that was previously issued: {pending}");
+
             self.issued_command = self.pending_command;
             self.pending_command = None;
 
