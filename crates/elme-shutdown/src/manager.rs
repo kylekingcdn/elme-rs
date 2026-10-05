@@ -64,7 +64,8 @@ impl ShutdownManager {
 
         // register global signal handler
         if options.handle_signals() {
-            SignalHandler::new_initialized(shared.clone());
+            let handler = SignalHandler::new_initialized(shared.clone());
+            handler.run_in_background();
         }
 
         Self {

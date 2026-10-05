@@ -1,4 +1,5 @@
 use crate::{
+    config::ShutdownConfig,
     manager::ShutdownManager,
     state::LockingSharedState,
 };
@@ -6,12 +7,11 @@ use crate::{
 use std::fmt;
 use std::process;
 use std::sync::{Mutex, OnceLock};
-use tokio::signal::unix::{signal, SignalKind};
-use tokio::sync::mpsc;
+use tokio::signal::unix::{signal, Signal, SignalKind};
 
 // !- Statics
 
-static HANDLER: OnceLock<SignalHandler> = OnceLock::new();
+static ACTIVE: OnceLock<()> = OnceLock::new();
 
 // !- Signal handler state
 
@@ -27,6 +27,7 @@ static HANDLER: OnceLock<SignalHandler> = OnceLock::new();
 struct SignalHandlerState {
     pub received_int: bool,
     pub received_term: bool,
+    pub received_hup: bool,
 }
 
 // !- Signal handler
@@ -34,119 +35,154 @@ struct SignalHandlerState {
 #[derive(Debug)]
 pub(crate) struct SignalHandler {
     state: Mutex<SignalHandlerState>,
-
     shared: LockingSharedState,
+
+    options: ShutdownConfig,
 }
 impl SignalHandler {
     const EXIT_CODE_FROM_SIGNAL: u8 = 0;
 
     fn new(shared: LockingSharedState) -> Self {
+        let options = shared.lock().unwrap().options();
         Self {
             state: Mutex::new(SignalHandlerState::default()),
             shared,
+            options,
         }
     }
-    pub(crate) fn new_initialized(shared: LockingSharedState) {
-        let (tx, rx) = mpsc::channel(10);
+    pub(crate) fn new_initialized(shared: LockingSharedState) -> Self {
         let handler = Self::new(shared);
-        HANDLER.set(handler).expect("Global signal handler initialized only once!");
+        ACTIVE.set(()).expect("Global signal handler initialized only once!");
 
-        // !- FIXME: use tokio select and use the branch result to specify the signal type
-        let recv_hup = SignalReceiver::new(SignalType::Hup, tx.clone());
-        let recv_int = SignalReceiver::new(SignalType::Int, tx.clone());
-        let recv_term = SignalReceiver::new(SignalType::Term, tx.clone());
-        let recv_quit = SignalReceiver::new(SignalType::Quit, tx);
-
-        tokio::spawn(async move {
-            let _ = tokio::join!(
-                HANDLER.get().unwrap().receive_signals(rx),
-                recv_hup.listen(),
-                recv_int.listen(),
-                recv_term.listen(),
-                recv_quit.listen(),
-            );
-        });
+        handler
     }
-    async fn receive_signals(&self, mut rx: mpsc::Receiver<SignalType>) {
-        while let Some(kind) = rx.recv().await {
-            match kind {
-                SignalType::Hup => {
-                    tracing::info!("Received SIG{kind}");
-                    tracing::debug!("Issuing reload (graceful stop without exit [re-init])");
-                    self.handle_reload();
-                },
-                SignalType::Int => {
-                    let is_first = !self.state.lock().unwrap().received_int;
-                    if is_first {
-                        self.state.lock().unwrap().received_int = true;
-                        tracing::info!("Received first SIG{kind}.");
-                        tracing::debug!("Issuing graceful shutdown.");
-                        self.handle_stop();
-                    } else {
-                        tracing::warn!("Received second SIG{kind}");
-                        tracing::error!("TERMINATING NOW");
-                        process::exit(-1);
+    pub(crate) fn run_in_background(self) {
+        tokio::spawn(async move { self.run().await; });
+    }
+    pub(crate) async fn run(self) {
+        let mut hup = SignalReceiver::new(SignalType::Hup);
+        let mut int = SignalReceiver::new(SignalType::Int);
+        let mut term = SignalReceiver::new(SignalType::Term);
+        let mut quit = SignalReceiver::new(SignalType::Quit);
+
+        loop {
+            let kind = tokio::select! {
+                biased;
+                s = quit.listen() => s,
+                s = int.listen() => s,
+                s = term.listen() => s,
+                s = hup.listen() => s,
+            };
+            tracing::info!("Received SIG{kind}");
+            let action = self.resolve_action(kind);
+            self.handle_action(action);
+        }
+    }
+    fn resolve_action(&self, kind: SignalType) -> Action {
+        let mut got_second = false;
+        let action = match kind {
+            SignalType::Quit => {
+                Action::Terminate
+            }
+
+            SignalType::Int => {
+                if self.options.terminate_on_second_signal() &&
+                   self.state.lock().unwrap().received_int {
+                    got_second = true;
+                }
+                self.state.lock().unwrap().received_int = true;
+                Action::Stop
+            }
+
+            SignalType::Term => {
+                if self.options.terminate_on_second_signal() &&
+                   self.state.lock().unwrap().received_term {
+                    got_second = true;
+                }
+                self.state.lock().unwrap().received_term = true;
+                Action::Stop
+            }
+
+            SignalType::Hup => {
+                if self.options.reload_enabled() {
+                    Action::Reload
+                } else {
+                    if self.options.terminate_on_second_signal() &&
+                       self.state.lock().unwrap().received_hup {
+                        got_second = true;
                     }
-                },
-                SignalType::Term => {
-                    let is_first = !self.state.lock().unwrap().received_term;
-                    if is_first {
-                        self.state.lock().unwrap().received_term = true;
-                        tracing::info!("Received first SIG{kind}.");
-                        tracing::debug!("Issuing graceful shutdown.");
-                        self.handle_stop();
-                    } else {
-                        tracing::warn!("Received second SIG{kind}");
-                        tracing::error!("TERMINATING NOW");
-                        process::exit(-1);
-                    }
-                },
-                SignalType::Quit => {
-                    println!("Received SIG{kind}");
-                    println!("TERMINATING NOW");
-                    process::exit(-1);
-                },
+                    self.state.lock().unwrap().received_hup = true;
+                    Action::Stop
+                }
+            }
+        };
+
+        // override to Kill, log warning
+        if got_second {
+            tracing::warn!("Received second SIG{kind}");
+            Action::Kill
+        } else {
+            action
+        }
+    }
+    fn handle_action(&self, action: Action) {
+        match action {
+            Action::Kill => {
+                //tracing::error!("TERMINATING NOW");
+                println!("TERMINATING NOW");
+                process::exit(-1);
+            }
+            Action::Terminate => {
+                tracing::warn!("Terminating now");
+                process::exit(Self::EXIT_CODE_FROM_SIGNAL.into());
+            }
+            Action::Stop => {
+                tracing::debug!("Dispatching stop");
+                let manager = ShutdownManager::from(self.shared.clone());
+                let _ = manager.stop(Self::EXIT_CODE_FROM_SIGNAL);
+
+            }
+            Action::Reload => {
+                tracing::debug!("Dispatching reload");
+                let manager = ShutdownManager::from(self.shared.clone());
+                let _ = manager.reload();
             }
         }
-
-        panic!("receive_signals() fn returning");
-    }
-    fn handle_reload(&self) {
-        let _ = ShutdownManager::from(self.shared.clone()).reload();
-    }
-    fn handle_stop(&self) {
-        let _ = ShutdownManager::from(self.shared.clone()).stop(Self::EXIT_CODE_FROM_SIGNAL);
     }
 }
 
 // !- Signal receiver
 
+#[derive(Debug)]
 pub(crate) struct SignalReceiver {
     kind: SignalType,
-
-    tx: mpsc::Sender<SignalType>,
+    signal: Signal,
 }
 impl SignalReceiver {
-    fn new(kind: SignalType, tx: mpsc::Sender<SignalType>) -> Self {
-        Self {
-            kind,
-            tx,
-        }
-    }
-    async fn listen(self) {
-        let mut stream = signal(self.kind.into()).unwrap_or_else(|_|
-            panic!("failed to init signal receiver for {}", self.kind)
+    fn new(kind: SignalType) -> Self {
+        let sig = signal(kind.into()).unwrap_or_else(|_|
+            panic!("Failed to register signal receiver for {kind}")
         );
-        loop {
-            stream.recv().await;
-            println!("Received signal: {}", self.kind);
-            if let Err(error) = self.tx.send(self.kind).await {
-                println!("failed to dispatch signal notification. Error: {error:#?}");
-                println!("TERMINATING NOW");
-                process::exit(-1);
-            }
+        Self {
+            signal: sig,
+            kind,
         }
     }
+    async fn listen(&mut self) -> SignalType {
+        self.signal.recv().await;
+        self.kind
+    }
+}
+
+// !- Action
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Action {
+    Reload,
+    Stop,
+    Terminate,
+    /// same as `Terminate`, but indicates an error (non-requested immediate quit)
+    Kill,
 }
 
 // !- Signal kind
