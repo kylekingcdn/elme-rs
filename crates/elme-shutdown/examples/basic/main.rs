@@ -56,7 +56,7 @@ async fn main() -> color_eyre::Result<ExitCode> {
         shutdown_mgr.inform_starting()?;
         let worker_mgr_handle = shutdown_mgr.register_task("Worker manager")?;
         let workers = WorkerManager::try_new(worker_mgr_handle)?;
-        tracing::warn!("Delaying startup for {STARTUP_DELAY_SEC}");
+        tracing::warn!("Delaying startup for {STARTUP_DELAY_SEC}s");
         tokio::time::sleep(Duration::from_secs(STARTUP_DELAY_SEC)).await;
 
         // – run app

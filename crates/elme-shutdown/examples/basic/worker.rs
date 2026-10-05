@@ -21,7 +21,7 @@ impl IntermittentWorker {
     const WORK_INTERVAL: u64 = 30;
 
     pub(crate) fn new(handle: TaskHandle) -> Self {
-        tracing::debug!(worker=%handle.task_name(), "Constructing");
+        tracing::debug!(worker=handle.task_name(), "Constructing");
         Self {
             handle,
         }
@@ -31,7 +31,7 @@ impl IntermittentWorker {
     ///
     /// every 30s, it will work on a task that takes 1-3 seconds to finish
     pub(crate) async fn run(self) {
-        tracing::info!(worker=%self.handle.task_name(), "Running");
+        tracing::info!(worker=self.handle.task_name(), "Running");
 
         let mut interval = interval(Duration::from_secs(Self::WORK_INTERVAL));
         interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
@@ -51,13 +51,13 @@ impl IntermittentWorker {
             }
         }
 
-        tracing::info!(worker=%self.handle.task_name(), "Stopping");
+        tracing::info!(worker=self.handle.task_name(), "Stopping");
     }
 
     /// non-blocking work that takes between 1s and 3s
     // #[tracing::instrument(skip(self), fields(worker=self.handle.task_name()))]
     async fn work(&self) {
-        tracing::info!(worker=%self.handle.task_name(), "Working on job");
+        tracing::info!(worker=self.handle.task_name(), "Working on job");
         // self.handle.manager().task_list().dump_tasks();
         tokio::time::sleep(util::rand_short_duration()).await;
     }
@@ -77,26 +77,26 @@ pub(crate) struct BusyWorker {
 }
 impl BusyWorker {
     pub(crate) fn new(handle: TaskHandle) -> Self {
-        tracing::debug!(worker=%handle.task_name(), "Constructing");
+        tracing::debug!(worker=handle.task_name(), "Constructing");
         Self {
             handle,
         }
     }
     /// primary worker loop, consumes self to indicate completion
     pub(crate) async fn run(self) {
-        tracing::info!(worker=%self.handle.task_name(), "Running");
+        tracing::info!(worker=self.handle.task_name(), "Running");
 
         while !self.handle.should_teardown() {
             // simulate long running, blocking batch work
             self.work().await;
         }
 
-        tracing::info!(worker=%self.handle.task_name(), "Stopping");
+        tracing::info!(worker=self.handle.task_name(), "Stopping");
     }
     /// blocking work that takes between 5s and 20s
     // #[tracing::instrument(skip_all, fields(worker="BusyWorker"))]
     async fn work(&self) {
-        tracing::info!(handle=%self.handle.task_name(), "Working on job");
+        tracing::info!(worker=self.handle.task_name(), "Working on job");
 
         let _ = tokio::task::spawn_blocking(|| {
             std::thread::sleep(util::rand_long_duration());
@@ -120,7 +120,7 @@ pub(crate) struct OneShotWorker {
 }
 impl OneShotWorker {
     pub(crate) fn new(handle: TaskHandle) -> Self {
-        tracing::debug!(worker=%handle.task_name(), "Constructing");
+        tracing::debug!(worker=handle.task_name(), "Constructing");
         Self {
             handle,
             work_time: util::rand_long_duration(),
@@ -130,12 +130,12 @@ impl OneShotWorker {
     /// primary work loop
     // #[tracing::instrument(skip(self), fields(worker=self.handle.task_name(), work_time=?self.work_time.as_secs()))]
     pub(crate) async fn run(self) {
-        tracing::info!(worker=%self.handle.task_name(), "Running");
+        tracing::info!(worker=self.handle.task_name(), "Running");
 
         // simulate short work
         tokio::time::sleep(self.work_time).await;
 
-        tracing::info!(worker=%self.handle.task_name(), "Stopping");
+        tracing::info!(worker=self.handle.task_name(), "Stopping");
     }
 }
 
@@ -147,21 +147,21 @@ pub(crate) struct Dispatcher {
 }
 impl Dispatcher {
     pub(crate) fn new(handle: TaskHandle, tx: async_channel::Sender<JobMessage>) -> Self {
-        tracing::debug!(worker=%handle.task_name(), "Constructing");
+        tracing::debug!(worker=handle.task_name(), "Constructing");
         Self {
             handle,
             tx,
         }
     }
     pub(crate) async fn run(self) {
-        tracing::info!(worker=%self.handle.task_name(), "Running");
+        tracing::info!(worker=self.handle.task_name(), "Running");
         // constantly saturate the channel until shutdown is issued
         loop {
             let msg = JobMessage { work_time: util::rand_short_duration() };
             tokio::select! {
                 biased;
                 () = self.handle.wait_for_teardown_start() => {
-                    tracing::info!(worker=%self.handle.task_name(), "Stopping");
+                    tracing::info!(worker=self.handle.task_name(), "Stopping");
                     return;
                 }
                 _ = self.tx.send(msg) => { tracing::trace!("Dispatched job"); },
@@ -197,7 +197,7 @@ impl DelegatedWorker {
         id: u16,
         rx: async_channel::Receiver<JobMessage>,
     ) -> Self {
-        tracing::debug!(worker=%handle.task_name(), %id, "Constructing");
+        tracing::debug!(worker=handle.task_name(), %id, "Constructing");
         Self {
             handle,
             id,
@@ -253,14 +253,14 @@ impl DelegatedWorker {
     /// >       How much 'breathing room' you'll require is up to you!
     /// > Simplifying to `max_jobs * avg_job_time_secs / worker_count * grace_factor`
     pub(crate) async fn run(self) {
-        tracing::info!(worker=%self.handle.task_name(), id=%self.id, "Running");
+        tracing::info!(worker=self.handle.task_name(), id=%self.id, "Running");
 
         while let Ok(msg) = self.rx.recv().await {
-            tracing::info!(handle=%self.handle.task_name(), id=%self.id, "Working on job (queued: {})", self.rx.len()+1);
+            tracing::info!(worker=self.handle.task_name(), id=%self.id, "Working on job (queued: {})", self.rx.len()+1);
             tokio::time::sleep(msg.work_time).await; // simulate work
         }
 
-        tracing::info!(worker=%self.handle.task_name(), id=%self.id, "Stopping");
+        tracing::info!(worker=self.handle.task_name(), id=%self.id, "Stopping");
     }
 }
 
