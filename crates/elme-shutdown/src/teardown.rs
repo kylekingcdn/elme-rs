@@ -136,6 +136,11 @@ impl UnregisterHandler {
                 hook_dispatcher.on_timeout(stats);
             }
         }
+
+        // add delay for dispatcher drop to allow for async cleanup
+        tokio::spawn(async move {
+            hook_dispatcher.drop_in(Duration::from_millis(200)).await;
+        });
         self.finished_token.cancel();
 
         res

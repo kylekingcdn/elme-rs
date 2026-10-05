@@ -95,6 +95,9 @@ impl HookDispatcher {
             progress: TeardownProgressHook::new(deps.progress_bars, transition_map, started_at, timeout),
         }
     }
+    pub(crate) async fn drop_in(self, duration: Duration) {
+        tokio::time::sleep(duration).await;
+    }
 }
 impl TeardownHook for HookDispatcher {
     fn on_task_unregistered(
@@ -102,26 +105,28 @@ impl TeardownHook for HookDispatcher {
         transition_map: &TransitioningTaskMap,
         task_name: &'static str,
     ) {
-        self.log.on_task_unregistered(transition_map, task_name);
-
         #[cfg(feature = "progress")]
         self.progress.on_task_unregistered(transition_map, task_name);
+
+        self.log.on_task_unregistered(transition_map, task_name);
     }
 
     fn on_finished(&self, stats: &TeardownStats) {
-        self.log.on_finished(stats);
-
+        // handle progress first so that log messages appear under the leftover timeout/task bars
         #[cfg(feature = "progress")]
         self.progress.on_finished(stats);
+
+        self.log.on_finished(stats);
 
         self.callbacks.on_finished(stats);
     }
 
     fn on_timeout(&self, stats: &TeardownTimeoutStats) {
-        self.log.on_timeout(stats);
-
+        // handle progress first so that log messages appear under the leftover timeout/task bars
         #[cfg(feature = "progress")]
         self.progress.on_timeout(stats);
+
+        self.log.on_timeout(stats);
 
         self.callbacks.on_timeout(stats);
     }
