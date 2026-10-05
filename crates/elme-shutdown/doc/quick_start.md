@@ -298,6 +298,7 @@ the **end*** of your [`tracing_subscriber::fmt`](mod@tracing_subscriber::fmt) ch
 // ..
 let shutdown_mgr = ShutdownManager::init(shutdown_config);
 
+# #[cfg(all(feature = "progress-writer", feature = "progress"))]
 // init tracing-subscriber
 tracing_subscriber::fmt()
     .with_ansi(true)
