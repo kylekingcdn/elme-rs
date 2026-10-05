@@ -1,5 +1,5 @@
 use crate::{
-    command::{Command, CommandResult, ReloadResult, StopCommand, StopResult},
+    command::{Command, CommandResult, ReloadResult, StopResult},
     config::{ShutdownConfig, ShutdownConfigBuilder},
     signal::SignalHandler,
     state::{
@@ -472,36 +472,31 @@ impl ShutdownManager {
     /// - If either [`issued_command`] or [`pending_command`] contain `Stop`,
     ///   returns [`StopResult::AlreadyIssued`]
     /// - Otherwise,
-    ///   - If currently in startup, saved to `pending_command` and
-    ///     returns [`StopResult::IssuedPending`]
-    ///   - If running or tearing down, saved to `issued_command` and returns [`StopResult::Issued`]
+    ///   - If currently in startup: saved to [`pending_command`], and if
+    ///     - `pending_command` was empty, returns [`StopResult::Pending`]
+    ///     - `pending_command` contained `Reload`, returns [`StopResult::PendingUpgrade`]
+    ///   - If running or tearing down, saved to [`issued_command`], and if
+    ///     - `issued_command` was empty, returns [`StopResult::Issued`]
+    ///     - `issued_command` contained `Reload`, returns [`StopResult::IssuedUpgrade`]
     ///
-    /// **Note**: Issuing stop will directly replace an issued or pending `Reload`, as long as the
-    /// reload hasn't already entered startup.
     ///
-    /// The inner [`StopCommand`] contained in each variant will be the previously issued `Stop`, if
-    /// any, or the command provided.
+    /// The inner [`StopCommand`] contained in each variant will be the previously issued `Stop`
+    /// for [`StopResult::AlreadyIssued`], or the provided command for any other case.
     ///
+    /// [`StopCommand`]: crate::command::StopCommand
     /// [`issued_command`]: Self::issued_command
     /// [`pending_command`]: Self::pending_command
     #[must_use]
     pub fn stop(&self, exit_code: u8) -> StopResult {
         tracing::info!(exit_code, "Received request to stop (exit code: {exit_code})");
         let res = self.shared_lock().stop(exit_code);
-        // !- TODO: remove
-        match &res {
-            StopResult::Issued(_) => {
-                tracing::info!("Stop issued successfully. Starting teardown procedures");
-                SharedState::start_teardown(&self.shared);
-                //self.teardown();
-            },
-            StopResult::IssuedPending(_) => {
-                tracing::info!("Stop is pending and will be issued upon finishing startup");
-            },
-            StopResult::AlreadyIssued(StopCommand { exit_code }) => {
-                tracing::info!("Already stopping (exit code: {exit_code}) - request ignored.");
-            },
+
+        // start teardown now
+        if matches!(res, StopResult::Issued(_)) {
+            tracing::debug!("Stop issued. Starting teardown procedures");
+            SharedState::start_teardown(&self.shared);
         }
+
         res
     }
 
@@ -520,7 +515,7 @@ impl ShutdownManager {
     ///   [`ReloadResult::AlreadyIssued`]
     /// - Otherwise,
     ///   - If currently in startup, saved to `pending_command` and returns
-    ///     [`ReloadResult::IssuedPending`]
+    ///     [`ReloadResult::Pending`]
     ///   - If running, saved to `issued_command` and returns [`ReloadResult::Issued`]
     ///   - **Note:** there is no case for tearing down as this would imply either `Stop` or
     ///     `Reload` has been issued, which is covered by the first 2 cases.
@@ -531,22 +526,13 @@ impl ShutdownManager {
     pub fn reload(&self) -> ReloadResult {
         tracing::info!("Received request to reload");
         let res = self.shared_lock().reload();
-        // !- TODO: remove
-        match &res {
-            ReloadResult::Issued => {
-                tracing::info!("Reload issued successfully. Starting teardown procedures");
-                SharedState::start_teardown(&self.shared);
-            },
-            ReloadResult::IssuedPending  => {
-                tracing::info!("Reload is pending and will be issued upon finishing startup");
-            },
-            ReloadResult::AlreadyIssued  => {
-                tracing::info!("Ignoring ShutdownManager::reload() call - was already issued");
-            },
-            ReloadResult::Stopping(stop_cmd) => {
-                tracing::info!("Ignoring ShutdownManager::reload() call - stop has been called: {stop_cmd}");
-            },
+
+        // start teardown now
+        if matches!(res, ReloadResult::Issued) {
+            tracing::debug!("Reload issued. Starting teardown procedures");
+            SharedState::start_teardown(&self.shared);
         }
+
         res
     }
 

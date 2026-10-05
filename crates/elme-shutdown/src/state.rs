@@ -411,9 +411,11 @@ impl SharedState {
         assert!(!locked.teardown_done_token.is_cancelled());
 
         locked.spawn_teardown_monitor(shared.clone());
-        drop(locked);
-        shared.lock().unwrap().teardown_start_token.cancel();
+        locked.teardown_start_token.cancel();
+        //drop(locked);
+        //shared.lock().unwrap().teardown_start_token.cancel();
     }
+
     pub(crate) fn finish_teardown(shared: &LockingSharedState) {
         tracing::info!("Post-teardown complete, wrapping up");
         let mut locked = shared.lock().unwrap();
@@ -424,7 +426,7 @@ impl SharedState {
 
         locked.teardown_done_token.cancel();
 
-        // clear the teardown_start token, rebuild it upon inform starting
+        // clear the startup done token, rebuild it upon inform starting
         locked.startup_done_token = None;
         // rebuild teardown started token
         locked.teardown_start_token = CancellationToken::new();
@@ -468,55 +470,131 @@ impl SharedState {
     pub(crate) fn unset_on_timeout(&mut self) {
         self.hook_deps.callbacks.on_timeout = None;
     }
-    // if we're in startup, we should compare against the pending command, as startup is
-    // immutable and once complete, the pending command will be loaded as the issued command
-    fn loaded_command(&self) -> Option<Command> {
-        if self.startup_in_progress() {
-            self.pending_command
-        } else {
-            self.issued_command
-        }
-    }
 
     pub(crate) fn reload(&mut self) -> ReloadResult {
         tracing::trace!("Attempting to issue reload command");
-        match self.loaded_command() { // !- FIXME: remove, handle explicitly
-            None => {
-                let cmd = Command::Reload;
-                if self.starting() {
-                    self.pending_command = Some(cmd);
-                    tracing::info!(%cmd, "Storing reload command as pending");
-                    ReloadResult::IssuedPending
-                } else {
-                    self.issued_command = Some(cmd);
-                    tracing::info!(%cmd, "Storing reload command as issued");
-                    ReloadResult::Issued
+        let input_cmd = Command::Reload;
 
+        let result = {
+            // stop issued in either command
+            if let Some(Command::Stop(cmd)) = self.issued_command {
+                ReloadResult::Stopping(cmd)
+            }
+            else if let Some(Command::Stop(cmd)) = self.pending_command {
+                ReloadResult::Stopping(cmd)
+            }
+            // reload has been issued as pending
+            else if let Some(Command::Reload) = self.pending_command {
+                ReloadResult::AlreadyIssued
+            }
+            // reload issued, may already have entered startup stage
+            else if let Some(Command::Reload) = self.issued_command {
+                if self.startup_in_progress() {
+                    // current reload has already entered startup, accept as pending
+                    ReloadResult::Pending
+                } else {
+                    // issued and has not begun startup yet, ignore
+                    ReloadResult::AlreadyIssued
                 }
+            }
+
+            // no commands currently stored
+            else if self.startup_done() { // supports first start prior to inform_starting()
+                // not in startup, issue immediately
+                ReloadResult::Issued
+            } else {
+                // starting up, store in pending until startup is done
+                ReloadResult::Pending
+            }
+        };
+
+        match result {
+            ReloadResult::Issued => {
+                self.issued_command = Some(input_cmd);
+                tracing::info!(cmd=%input_cmd, "Storing reload command as issued");
             },
-            // !- FIXME: double reload should store as pending
-            Some(Command::Reload) => ReloadResult::AlreadyIssued,
-            Some(Command::Stop(stop_cmd)) => ReloadResult::Stopping(stop_cmd),
+            ReloadResult::Pending => {
+                self.pending_command = Some(input_cmd);
+                tracing::info!(cmd=%input_cmd, "Storing reload command as pending");
+            },
+            ReloadResult::AlreadyIssued => {
+                tracing::warn!(cmd=%input_cmd, "Ignoring reload command, already issued");
+            },
+            ReloadResult::Stopping(cmd) => {
+                tracing::warn!(%cmd, "Ignoring reload command, stop has been requested");
+            },
         }
+        result
     }
     pub(crate) fn stop(&mut self, exit_code: u8) -> StopResult {
         tracing::trace!(exit_code, "Attempting to issue stop command");
-        match self.loaded_command() { // !- FIXME: remove, handle explicitly
-            None |
-            Some(Command::Reload) => {
-                let cmd = StopCommand { exit_code };
-                if self.startup_in_progress() {
-                    self.pending_command = Some(cmd.into());
-                    tracing::info!(%cmd, "Storing stop command as pending");
-                    StopResult::IssuedPending(cmd)
-                } else {
-                    self.issued_command = Some(cmd.into());
-                    tracing::info!(%cmd, "Storing stop command as issued");
-                    StopResult::Issued(cmd)
+        let input_cmd = StopCommand { exit_code };
+
+        let result = {
+            // currently have a pending command
+            if let Some(cmd) = self.pending_command {
+                match cmd {
+                    // pending stop, return already issued
+                    Command::Stop(stop_cmd) => StopResult::AlreadyIssued(stop_cmd),
+                    // pending reload, promote reload to stop
+                    Command::Reload => {
+                        tracing::trace!("Stop is replacing pending reload");
+                        StopResult::PendingUpgrade(input_cmd)
+                    }
                 }
+            }
+
+            // currently have an issued command
+            else if let Some(cmd) = self.issued_command {
+                // if starting up, store in pending (which is empty, per above)
+                if self.startup_in_progress() { // can infer startup # > 1, command is in `issued`
+                    StopResult::Pending(input_cmd)
+                }
+                // not yet starting up, either replace issued reload or ignore as already issued
+                else {
+                    match cmd {
+                        // issued stop, return already issued
+                        Command::Stop(stop_cmd) => StopResult::AlreadyIssued(stop_cmd),
+                        // issued reload, promote reload to stop
+                        Command::Reload => {
+                            tracing::trace!("Stop is replacing reload, startup hasn't begun");
+                            StopResult::IssuedUpgrade(input_cmd)
+                        }
+                    }
+                }
+            }
+
+            // no commands issued
+            else if self.startup_done() { // supports first start prior to inform_starting()
+                // not in startup, issue immediately
+                StopResult::Issued(input_cmd)
+            } else {
+                // starting up, store in pending until startup is done
+                StopResult::Pending(input_cmd)
+            }
+        };
+        match result {
+            StopResult::Issued(cmd) => {
+                self.issued_command = Some(cmd.into());
+                tracing::info!(%cmd, "Storing stop command as issued");
             },
-            Some(Command::Stop(stop_cmd)) => StopResult::AlreadyIssued(stop_cmd),
+            StopResult::IssuedUpgrade(cmd) => {
+                self.issued_command = Some(cmd.into());
+                tracing::info!(%cmd, "Upgraded issued_command to Stop");
+            },
+            StopResult::Pending(cmd) => {
+                self.pending_command = Some(cmd.into());
+                tracing::info!(%cmd, "Storing stop command as pending");
+            },
+            StopResult::PendingUpgrade(cmd) => {
+                self.pending_command = Some(cmd.into());
+                tracing::info!(%cmd, "Upgraded pending_command to Stop");
+            },
+            StopResult::AlreadyIssued(cmd) => {
+                tracing::warn!(%cmd, "Ignoring stop command, already issued");
+            },
         }
+        result
     }
 
     /// promotes the pending command (if one exists), to issued

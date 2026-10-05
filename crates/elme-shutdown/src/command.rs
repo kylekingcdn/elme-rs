@@ -58,16 +58,24 @@ impl fmt::Display for StopCommand {
 pub enum StopResult {
     /// Stop issued and stored as `issued_command`
     Issued(StopCommand),
+    /// Replaced the Reload command stored under `issued_command`
+    ///
+    /// Only possible if the Reload startup hasn't begun yet
+    IssuedUpgrade(StopCommand),
     /// Stop issued as pending and stored as `pending_command`
-    IssuedPending(StopCommand),
+    Pending(StopCommand),
+    /// Replaced the Reload command stored under `pending_command`
+    PendingUpgrade(StopCommand),
     /// Stop has already been requested and is stored as either issued or pending
+    ///
+    /// The contained [`StopCommand`] is from the previously invoked `stop()` call.
     AlreadyIssued(StopCommand),
 }
 impl StopResult {
-    /// Returns `true` when `Issued` or `IssuedPending`
+    /// Returns `true` for all cases except for `AlreadyIssued`
     #[must_use]
     pub fn was_issued(&self) -> bool {
-        matches!(self, Self::Issued(_)) || matches!(self, Self::IssuedPending(_))
+        !matches!(self, Self::AlreadyIssued(_))
     }
 
     /// Returns the inner `StopCommand` contained by each variant
@@ -75,7 +83,9 @@ impl StopResult {
     pub fn command(&self) -> StopCommand {
         match &self {
             Self::Issued(cmd) |
-            Self::IssuedPending(cmd) |
+            Self::IssuedUpgrade(cmd) |
+            Self::Pending(cmd) |
+            Self::PendingUpgrade(cmd) |
             Self::AlreadyIssued(cmd) => *cmd,
         }
     }
@@ -93,17 +103,18 @@ pub enum ReloadResult {
     /// Reload issued and stored as `issued_command`
     Issued,
     /// Reload issued as pending and stored as `pending_command`
-    IssuedPending,
+    Pending,
     /// Reload has already been requested and is stored as either issued or pending
     AlreadyIssued,
     /// Stop has previously been requested, Reload is no longer permitted
     Stopping(StopCommand),
 }
 impl ReloadResult {
-    /// Returns `true` when `Issued` or `IssuedPending`
+    /// Returns `true` when `Issued` or `Pending`
     #[must_use]
     pub fn was_issued(&self) -> bool {
-        matches!(self, Self::Issued) || matches!(self, Self::AlreadyIssued)
+        matches!(self, Self::Issued) ||
+        matches!(self, Self::Pending)
     }
 }
 
@@ -116,7 +127,10 @@ pub enum CommandResult {
     Reload(ReloadResult),
 }
 impl CommandResult {
-    /// Returns `true` when inner result is either `Issued` or `IssuedPending`
+    /// - If the variant is `CommandResult::Stop`:
+    ///   - Passes through to [`StopResult::was_issued`]
+    /// - If the variant is `CommandResult::Reload`:
+    ///   - Passes through to [`ReloadResult::was_issued`]
     #[must_use]
     pub fn was_issued(&self) -> bool {
         match &self {
