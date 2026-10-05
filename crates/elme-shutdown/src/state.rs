@@ -363,6 +363,8 @@ impl SharedState {
             // rebuild startup token
             locked.startup_done_token = Some(CancellationToken::new());
 
+            // TODO: drop lock here?
+
             // rebuild teardown done token
             locked.teardown_done_token = CancellationToken::new();
 
