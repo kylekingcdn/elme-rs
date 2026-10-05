@@ -57,7 +57,17 @@ Features for the corresponding crates (`elme`, `elme-shutdown`) are listed below
 
 - [x] Fix `ProgressWriter` `stdout`/`stderr` merge
 - [x] `ProgressWriter` docs
-- [ ] Fix `LifecycleStage`/`RunState` incorrect usage of `loaded_command()`
-- [ ] Fix double `Reload` not stored to pending
-- [ ] Remove tracing events from `ShutdownManager::stop()` & `ShutdownManager::reload()`?
-- [ ] Break up `basic` example workers into dedicated modules
+- [x] Fix `LifecycleStage`/`RunState` incorrect usage of `loaded_command()`
+- [x] Fix double `Reload` not stored to pending
+- [x] Fix init lifecycle in basic example
+- [x] Remove tracing events from `ShutdownManager::stop()` & `ShutdownManager::reload()`?
+
+### Upcoming
+
+- [ ] Proper signal handling support on Windows
+- [ ] Support for attaching arbitrary IDs to each instance of a task
+      - Unused internally, but would be a nice QoL bonus w/ `tracing` spans
+- [ ] Pre-defined output formats for teardown log messages, e.g:
+      - Log each finished instance and output remaining tasks w/ counts (current behaviour)
+      - Log each task once when all of its instances have stopped
+      - Log just remaining tasks when upon all instances of a task completing
