@@ -263,15 +263,6 @@ impl SharedState {
         self.pending_command
     }
 
-    /// Returns true until [`inform_started`] is called
-    ///
-    /// This differs from [`startup_in_progress`], as this will return true prior to the call to [`inform_starting`].
-    ///
-    /// For reload commands, this will begin returning true once teardown has finished
-    pub(crate) fn starting(&self) -> bool {
-        // !- FIXME: return false if stop issued
-        self.startup_done_token.as_ref().is_none_or(|t| !t.is_cancelled())
-    }
     /// Returns true after calling [`inform_starting`], up until [`inform_started`] is called
     pub(crate) fn startup_in_progress(&self) -> bool {
         self.startup_done_token.as_ref().is_some_and(|t| !t.is_cancelled())
@@ -296,12 +287,14 @@ impl SharedState {
 
     // current stage of app lifecycle
     pub(crate) fn lifecycle_stage(&self) -> LifecycleStage {
-        if self.starting() {
-            LifecycleStage::Startup
-        } else if self.issued_command.is_none() {
-            LifecycleStage::Running
+        if self.startup_done() {
+            if self.teardown_started() {
+                LifecycleStage::Teardown
+            } else {
+                LifecycleStage::Running
+            }
         } else {
-            LifecycleStage::Teardown
+            LifecycleStage::Startup
         }
     }
     // current state of app
