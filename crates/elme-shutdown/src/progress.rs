@@ -174,8 +174,12 @@ impl TeardownHook for TeardownProgressHook {
             }
         }
         self.bars.instance_bar.set_style(instances_style(self.bar_value_width, true));
-        self.bars.instance_bar.finish_using_style();
-        self.bars.timeout_bar.abandon();
+        self.bars.instance_bar.finish_and_clear();
+        self.bars.timeout_bar.finish_and_clear();
+
+        // force draw to keep logs positioned correctly
+        self.bars.instance_bar.force_draw();
+        self.bars.timeout_bar.force_draw();
     }
 
     fn on_timeout(&self, _stats: &TeardownTimeoutStats) {
@@ -187,6 +191,10 @@ impl TeardownHook for TeardownProgressHook {
         self.bars.instance_bar.set_style(instances_style(self.bar_value_width, true));
         self.bars.instance_bar.abandon();
         self.bars.timeout_bar.finish_using_style();
+
+        // force draw to keep logs positioned correctly
+        self.bars.instance_bar.force_draw();
+        self.bars.timeout_bar.force_draw();
     }
 }
 
