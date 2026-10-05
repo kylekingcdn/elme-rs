@@ -55,7 +55,7 @@ Features for the corresponding crates (`elme`, `elme-shutdown`) are listed below
 
 ### `0.2.0`
 
-- [ ] serde-optional support
+- [x] serde-optional support
 - [ ] Full docs for configuration
 - [ ] Support for disabling progress at run-time
 - [ ] Proper signal handling support on Windows

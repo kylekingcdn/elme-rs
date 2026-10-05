@@ -14,9 +14,11 @@ workspace = true
 [features]
 # ! Module flags
 ## Enables the `elme-config` module
-config =    ["dep:elme-config"]
+## serde is a mandatory dep, include the serde feature so other modules benefit
+config =    ["dep:elme-config", "serde"]
 ## Enables the `elme-db` module
-db =        ["dep:elme-db"]
+## serde is a mandatory dep, include the serde feature so other modules benefit
+db =        ["dep:elme-db", "serde"]
 ## Enables the `elme-error` module
 error =     ["dep:elme-error"]
 ## Enables the `elme-otel` module
@@ -28,12 +30,13 @@ shutdown =  ["dep:elme-shutdown"]
 ## Enables all optional features of enabled modules. Modules must still be
 ## explicitly enabled
 full = [
-    # "ansi",
     "elme-db?/full",
     "elme-shutdown?/full",
 ]
-## Enables ANSI + color output, where supported
-# ansi = ["elme-shutdown?/ansi"]
+## Enable serde feature in supported modules
+serde = [
+    "elme-shutdown?/serde",
+]
 
 # ! Module-specific features
 ## Enables the `op-traits` feature of the `db` module.

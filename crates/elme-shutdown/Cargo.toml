@@ -23,18 +23,20 @@ default = []
 full = [
     "progress",
     "progress-writer",
+    "serde",
 ]
 ## show lifecycle and task teardown progress
 progress = ["dep:indicatif"]
 ## provides tracing-subscriber writer for proper tracing output
 progress-writer = ["progress", "tracing-subscriber/fmt", "tracing-subscriber/std"]
+serde = ["dep:serde", "lib-conf/serde"]
 
 [dependencies]
 chrono = { workspace = true, features = ["clock", "now"] }
 console = { workspace = true, features = ["default"] }
 indicatif = { workspace = true, optional = true }
-lib-conf = { workspace = true, features = ["standard", "adapter-tracing-level"] }
-serde = { workspace = true, features = ["derive", "std"] }
+lib-conf = { workspace = true, features = ["derive", "adapter-tracing-level"] }
+serde = { workspace = true, optional = true, features = ["derive", "std"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "signal", "sync", "time"] }
 tokio-util = { workspace = true, features = ["tracing"] }
