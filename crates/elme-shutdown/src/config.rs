@@ -57,6 +57,17 @@ pub struct ShutdownConfig {
     #[config(copy, default = true)]
     pub(crate) reload_support: bool,
 
+    /// Provides config-level support for disabling progress support
+    ///
+    /// This can be useful in scenarios such as:
+    /// - disabling support at runtime via [`ShutdownOverrideConfig`]
+    /// - multi-binary workspaces, where additive dependency rules cause undesired enablement
+    // #[cfg(feature = "progress")]
+    // #[cfg_attr(docsrs, doc(cfg(all(feature = "progress-writer"))))]
+    // #[cfg_attr(feature = "progress", config(copy, default = true))]
+    #[config(copy, default = true)] // !- FIXME: conditional inclusion once doc attr passthrough is fixed
+    pub(crate) progress_support: bool,
+
     /// Enables logging of remaining teardown tasks.
     #[config(copy, default = true)]
     pub(crate) log_teardown_remaining: bool,
