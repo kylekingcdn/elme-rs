@@ -238,8 +238,13 @@ impl ShutdownManager {
     /// # use elme_shutdown::{MappedProgressWriter, ShutdownManager};
     /// #
     /// # let shutdown_manager = ShutdownManager::default();
-    /// # let writer = std::io::stdout;
-    /// let writer = MappedProgressWriter::new(shutdown_manager.progress_bars(), writer);
+    /// let source_writer = // ..
+    /// # std::io::stdout;
+    /// let writer = MappedProgressWriter::new(
+    ///     shutdown_manager.progress_bars(),
+    ///     shutdown_manager.options().progress_support(),
+    ///     source_writer,
+    /// );
     /// # }
     /// ```
     #[cfg(all(feature = "progress-writer", feature = "progress"))]
@@ -287,7 +292,10 @@ impl ShutdownManager {
     /// # use elme_shutdown::{ProgressWriter, ShutdownManager};
     /// #
     /// # let shutdown_manager = ShutdownManager::default();
-    /// let writer = ProgressWriter::new_stdout(shutdown_manager.progress_bars());
+    /// let writer = ProgressWriter::new_stdout(
+    ///     shutdown_manager.progress_bars(),
+    ///     shutdown_manager.options().progress_support(),
+    /// );
     /// # }
     /// ```
     ///
@@ -341,7 +349,10 @@ impl ShutdownManager {
     /// # use elme_shutdown::{ProgressWriter, ShutdownManager};
     /// #
     /// # let shutdown_manager = ShutdownManager::default();
-    /// let writer = ProgressWriter::new_stderr(shutdown_manager.progress_bars());
+    /// let writer = ProgressWriter::new_stderr(
+    ///     shutdown_manager.progress_bars(),
+    ///     shutdown_manager.options().progress_support(),
+    /// );
     /// # }
     /// ```
     ///
@@ -881,7 +892,7 @@ impl ShutdownManager {
     ///
     /// The provided fn receives a single parameter: [`&TeardownStats`](TeardownStats).
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// # #[tokio::main]
@@ -945,7 +956,7 @@ impl ShutdownManager {
     /// The provided fn receives a single parameter:
     /// [`&TeardownTimeoutStats`](TeardownTimeoutStats).
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// # #[tokio::main]

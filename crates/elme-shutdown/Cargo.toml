@@ -36,7 +36,7 @@ chrono = { workspace = true, features = ["clock", "now"] }
 console = { workspace = true, features = ["default"] }
 indicatif = { workspace = true, optional = true }
 lib-conf = { workspace = true, features = ["derive", "adapter-tracing-level"] }
-serde = { workspace = true, optional = true, features = ["derive", "std"] }
+serde = { workspace = true, optional = true, features = ["std", "derive"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "signal", "sync", "time"] }
 tokio-util = { workspace = true, features = ["tracing"] }
