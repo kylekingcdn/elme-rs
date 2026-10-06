@@ -37,7 +37,7 @@ pub(crate) trait TeardownHook {
 /// Therefore, a dedicated struct is required for hooks that require persistent data.
 #[derive(Debug, Clone)]
 pub(crate) struct HookDeps {
-    pub(crate) log_opts: TeardownLogHookOpts,
+    pub(crate) options: ShutdownConfig,
 
     #[cfg(feature = "progress")]
     pub(crate) progress_bars: indicatif::MultiProgress,
@@ -46,12 +46,12 @@ pub(crate) struct HookDeps {
 }
 impl HookDeps {
     pub(crate) fn new(
-        log_opts: TeardownLogHookOpts,
+        options: ShutdownConfig,
         #[cfg(feature = "progress")]
         progress_bars: indicatif::MultiProgress,
     ) -> Self {
         Self {
-            log_opts,
+            options,
             #[cfg(feature = "progress")]
             progress_bars,
             callbacks: TeardownCallbacks::default(),
@@ -84,15 +84,14 @@ impl HookDispatcher {
     pub(crate) fn new(
         transition_map: &TransitioningTaskMap,
         started_at: DateTime<Utc>,
-        timeout: Duration,
         deps: HookDeps,
     ) -> Self {
         Self {
-            log: TeardownLogHook::new(deps.log_opts),
+            log: TeardownLogHook::new((&deps.options).into()),
             callbacks: TeardownCallbackHook::new(deps.callbacks.clone()),
 
             #[cfg(feature = "progress")]
-            progress: TeardownProgressHook::new(deps.progress_bars, transition_map, started_at, timeout),
+            progress: TeardownProgressHook::new(deps.progress_bars, transition_map, started_at, deps.options.timeout),
         }
     }
     pub(crate) async fn drop_in(self, duration: Duration) {

@@ -212,7 +212,7 @@ impl SharedState {
             issued_command: None,
             pending_command: None,
             hook_deps: HookDeps::new(
-                (&options).into(),
+                options,
                 #[cfg(feature = "progress")]
                 progress,
             ),

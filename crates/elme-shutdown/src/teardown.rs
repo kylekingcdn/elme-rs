@@ -99,7 +99,6 @@ impl UnregisterHandler {
         let hook_dispatcher = HookDispatcher::new(
             &self.transition_map,
             started_at,
-            self.timeout,
             self.hook_deps.clone(),
         );
 
