@@ -77,7 +77,7 @@ pub(crate) struct HookDispatcher {
     callbacks: TeardownCallbackHook,
 
     #[cfg(feature = "progress")]
-    progress: TeardownProgressHook,
+    progress: Option<TeardownProgressHook>,
 }
 impl HookDispatcher {
     #[allow(clippy::needless_pass_by_value, unused_variables)] // feature-dependent
@@ -91,7 +91,9 @@ impl HookDispatcher {
             callbacks: TeardownCallbackHook::new(deps.callbacks.clone()),
 
             #[cfg(feature = "progress")]
-            progress: TeardownProgressHook::new(deps.progress_bars, transition_map, started_at, deps.options.timeout),
+            progress: deps.options.progress_support().then(||
+                TeardownProgressHook::new(deps.progress_bars, transition_map, started_at, deps.options.timeout)
+            ),
         }
     }
     pub(crate) async fn drop_in(self, duration: Duration) {
@@ -105,7 +107,9 @@ impl TeardownHook for HookDispatcher {
         task_name: &'static str,
     ) {
         #[cfg(feature = "progress")]
-        self.progress.on_task_unregistered(transition_map, task_name);
+        if let Some(progress) = self.progress.as_ref() {
+            progress.on_task_unregistered(transition_map, task_name);
+        }
 
         self.log.on_task_unregistered(transition_map, task_name);
     }
@@ -113,7 +117,9 @@ impl TeardownHook for HookDispatcher {
     fn on_finished(&self, stats: &TeardownStats) {
         // handle progress first so that log messages appear under the leftover timeout/task bars
         #[cfg(feature = "progress")]
-        self.progress.on_finished(stats);
+        if let Some(progress) = self.progress.as_ref() {
+            progress.on_finished(stats);
+        }
 
         self.log.on_finished(stats);
 
@@ -123,7 +129,9 @@ impl TeardownHook for HookDispatcher {
     fn on_timeout(&self, stats: &TeardownTimeoutStats) {
         // handle progress first so that log messages appear under the leftover timeout/task bars
         #[cfg(feature = "progress")]
-        self.progress.on_timeout(stats);
+        if let Some(progress) = self.progress.as_ref() {
+            progress.on_timeout(stats);
+        }
 
         self.log.on_timeout(stats);
 

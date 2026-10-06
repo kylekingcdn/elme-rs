@@ -249,7 +249,7 @@ impl ShutdownManager {
     where
         W: for<'writer> MakeWriter<'writer> + 'static
     {
-        MappedProgressWriter::new(self.progress_bars(), writer)
+        MappedProgressWriter::new(self.progress_bars(), self.options().progress_support(), writer)
     }
 
     /// Creates a new `stdout` [`ProgressWriter`](ProgressWriter) for use
@@ -303,7 +303,7 @@ impl ShutdownManager {
     #[cfg_attr(docsrs, doc(cfg(feature = "progress-writer")))]
     #[must_use]
     pub fn stdout_progress_writer(&self) -> ProgressWriter<std::io::Stdout> {
-        ProgressWriter::new_stdout(self.progress_bars())
+        ProgressWriter::new_stdout(self.progress_bars(), self.options().progress_support())
     }
 
     /// Creates a new `stderr` [`ProgressWriter`](ProgressWriter) for use
@@ -357,7 +357,7 @@ impl ShutdownManager {
     #[cfg_attr(docsrs, doc(cfg(feature = "progress-writer")))]
     #[must_use]
     pub fn stderr_progress_writer(&self) -> ProgressWriter<std::io::Stderr> {
-        ProgressWriter::new_stderr(self.progress_bars())
+        ProgressWriter::new_stderr(self.progress_bars(), self.options().progress_support())
     }
 
     /// used to centralize `missing_panic_docs` warnings without blanket allow

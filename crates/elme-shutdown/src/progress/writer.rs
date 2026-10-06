@@ -18,14 +18,16 @@ use std::io;
 /// whenever output is sent to the underlying `io::Write` type
 pub struct ProgressWriter<W: io::Write> {
     mp: MultiProgress,
+    progress_enabled: bool,
     writer: W,
 }
 
 impl<W: io::Write> ProgressWriter<W> {
     /// Creates a new `ProgressWriter`
-    pub fn new(multi_progress: MultiProgress, writer: W) -> Self {
+    pub fn new(multi_progress: MultiProgress, progress_enabled: bool, writer: W) -> Self {
         Self {
             mp: multi_progress,
+            progress_enabled,
             writer,
         }
     }
@@ -36,19 +38,39 @@ impl<W: io::Write> ProgressWriter<W> {
 }
 impl<W: io::Write> io::Write for ProgressWriter<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.mp.suspend(|| self.writer.write(buf))
+        if self.progress_enabled {
+            self.mp.suspend(|| self.writer.write(buf))
+        } else {
+            self.writer.write(buf)
+        }
     }
     fn flush(&mut self) -> io::Result<()> {
-        self.mp.suspend(|| self.writer.flush())
+        if self.progress_enabled {
+            self.mp.suspend(|| self.writer.flush())
+        } else {
+            self.writer.flush()
+        }
     }
     fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        self.mp.suspend(|| self.writer.write_vectored(bufs))
+        if self.progress_enabled {
+            self.mp.suspend(|| self.writer.write_vectored(bufs))
+        } else {
+            self.writer.write_vectored(bufs)
+        }
     }
     fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-        self.mp.suspend(|| self.writer.write_all(buf))
+        if self.progress_enabled {
+            self.mp.suspend(|| self.writer.write_all(buf))
+        } else {
+            self.writer.write_all(buf)
+        }
     }
     fn write_fmt(&mut self, fmt: std::fmt::Arguments<'_>) -> io::Result<()> {
-        self.mp.suspend(|| self.writer.write_fmt(fmt))
+        if self.progress_enabled {
+            self.mp.suspend(|| self.writer.write_fmt(fmt))
+        } else {
+            self.writer.write_fmt(fmt)
+        }
     }
 }
 
@@ -59,15 +81,15 @@ impl ProgressWriter<io::Stdout> {
     ///
     /// This disregards the any writer configuration present in the [`tracing_subscriber::fmt::Layer`].
     #[must_use]
-    pub fn new_stdout(multi_progress: MultiProgress) -> ProgressWriter<io::Stdout> {
-        Self::new(multi_progress, io::stdout())
+    pub fn new_stdout(multi_progress: MultiProgress, progress_enabled: bool) -> ProgressWriter<io::Stdout> {
+        Self::new(multi_progress, progress_enabled, io::stdout())
     }
 }
 impl<'a> MakeWriter<'a> for ProgressWriter<io::Stdout> {
     type Writer = Self;
 
     fn make_writer(&'a self) -> Self::Writer {
-        ProgressWriter::new(self.mp.clone(), io::stdout())
+        ProgressWriter::new(self.mp.clone(), self.progress_enabled, io::stdout())
     }
 }
 
@@ -78,21 +100,22 @@ impl ProgressWriter<io::Stderr> {
     ///
     /// This disregards the any writer configuration present in the [`tracing_subscriber::fmt::Layer`].
     #[must_use]
-    pub fn new_stderr(multi_progress: MultiProgress) -> ProgressWriter<io::Stderr> {
-        Self::new(multi_progress, io::stderr())
+    pub fn new_stderr(multi_progress: MultiProgress, progress_enabled: bool) -> ProgressWriter<io::Stderr> {
+        Self::new(multi_progress, progress_enabled, io::stderr())
     }
 }
 impl<'a> MakeWriter<'a> for ProgressWriter<io::Stderr> {
     type Writer = Self;
 
     fn make_writer(&'a self) -> Self::Writer {
-        ProgressWriter::new(self.mp.clone(), io::stderr())
+        ProgressWriter::new(self.mp.clone(), self.progress_enabled, io::stderr())
     }
 }
 
 /// Intermediate type used to provide map support for any [`fmt::Layer`](tracing_subscriber::fmt::Layer) writer
 pub struct MappedProgressWriter<M> {
     mp: MultiProgress,
+    progress_enabled: bool,
     make: M,
 }
 impl<'a, M> MappedProgressWriter<M>
@@ -102,9 +125,10 @@ where
 {
     /// Creates a new [`MappedProgressWriter`] for use with
     /// [`fmt::Layer::map_writer`](tracing_subscriber::fmt::Layer::map_writer)
-    pub fn new(multi_progress: MultiProgress, make_writer: M) -> Self {
+    pub fn new(multi_progress: MultiProgress, progress_enabled: bool, make_writer: M) -> Self {
         Self {
             mp: multi_progress,
+            progress_enabled,
             make: make_writer,
         }
     }
@@ -117,6 +141,6 @@ where
     type Writer = ProgressWriter<<M as MakeWriter<'a>>::Writer>;
 
     fn make_writer(&'a self) -> Self::Writer {
-        ProgressWriter::new(self.mp.clone(), self.make.make_writer())
+        ProgressWriter::new(self.mp.clone(), self.progress_enabled, self.make.make_writer())
     }
 }
