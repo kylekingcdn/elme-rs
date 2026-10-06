@@ -18,7 +18,9 @@ name = "basic"
 workspace = true
 
 [features]
-default = []
+default = [
+    "serde"
+]
 ## enables all features
 full = [
     "progress",
