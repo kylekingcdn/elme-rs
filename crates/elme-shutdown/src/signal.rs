@@ -119,7 +119,7 @@ impl SignalHandler {
 
         // override to Kill, log warning
         if got_second {
-            tracing::warn!("Received second SIG{kind}");
+            tracing::warn!("SIG{kind} was invoked for a 2nd time - terminating shortly...");
             Action::Kill
         } else {
             action
@@ -128,8 +128,7 @@ impl SignalHandler {
     fn handle_action(&self, action: Action) {
         match action {
             Action::Kill => {
-                //tracing::error!("TERMINATING NOW");
-                println!("TERMINATING NOW");
+                println!("Terminating now [FORCED]");
                 process::exit(-1);
             }
             Action::Terminate => {

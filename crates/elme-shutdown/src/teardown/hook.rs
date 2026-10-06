@@ -218,7 +218,6 @@ impl TeardownHook for TeardownLogHook {
                 Level::ERROR => tracing::error!("\n{}", stats.report_text()),
             }
         }
-        //tracing::trace!("Full teardown stats:\n{stats:#?}");
     }
 
     fn on_timeout(&self, stats: &TeardownTimeoutStats) {
@@ -236,7 +235,6 @@ impl TeardownHook for TeardownLogHook {
                 Level::ERROR => tracing::error!("\n{}", stats.report_text()),
             }
         }
-        //tracing::trace!("Full teardown timeout stats:\n{stats:#?}");
     }
 }
 
