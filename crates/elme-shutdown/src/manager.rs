@@ -510,7 +510,8 @@ impl ShutdownManager {
     /// While not a conventional `Result` with `Ok`/`Err` states, a `ReloadResult` does represent
     /// varying degrees of "success".
     ///
-    /// - If either [`issued_command`] or [`pending_command`] contain `Stop`,
+    /// - If reload support has been explicitly disabled with [`ShutdownConfig::reload_support`], returns [`ReloadResult::Disabled`]
+    /// - Otherwise, if either [`issued_command`] or [`pending_command`] contain `Stop`,
     ///   returns [`ReloadResult::Stopping`] with the issued `Stop` command
     /// - Otherwise, if either [`issued_command`] or [`pending_command`] contain `Reload`, returns
     ///   [`ReloadResult::AlreadyIssued`]

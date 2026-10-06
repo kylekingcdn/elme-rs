@@ -104,7 +104,7 @@ impl SignalHandler {
             }
 
             SignalType::Hup => {
-                if self.options.reload_enabled() {
+                if self.options.reload_support() {
                     Action::Reload
                 } else {
                     if self.options.terminate_on_second_signal() &&

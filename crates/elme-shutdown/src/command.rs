@@ -108,6 +108,8 @@ pub enum ReloadResult {
     AlreadyIssued,
     /// Stop has previously been requested, Reload is no longer permitted
     Stopping(StopCommand),
+    /// Reload support has been explicitly disabled by [`ShutdownConfig::reload_support`](crate::ShutdownConfig::reload_support)
+    Disabled,
 }
 impl ReloadResult {
     /// Returns `true` when `Issued` or `Pending`

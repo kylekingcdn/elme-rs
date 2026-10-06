@@ -55,7 +55,7 @@ pub struct ShutdownConfig {
     /// If disabled, `HUP` signals are handled identically to `INT` and `TERM`.
     /// Calls to [`ShutdownManager::reload()`](crate::ShutdownManager::reload) will be silently ignored.
     #[config(copy, default = true)]
-    pub(crate) reload_enabled: bool,
+    pub(crate) reload_support: bool,
 
     /// Enables logging of remaining teardown tasks.
     #[config(copy, default = true)]

@@ -478,8 +478,12 @@ impl SharedState {
         let input_cmd = Command::Reload;
 
         let result = {
+            // reload explicitly disabled
+            if !self.options.reload_support {
+                ReloadResult::Disabled
+            }
             // stop issued in either command
-            if let Some(Command::Stop(cmd)) = self.issued_command {
+            else if let Some(Command::Stop(cmd)) = self.issued_command {
                 ReloadResult::Stopping(cmd)
             }
             else if let Some(Command::Stop(cmd)) = self.pending_command {
@@ -521,6 +525,9 @@ impl SharedState {
             },
             ReloadResult::AlreadyIssued => {
                 tracing::warn!(cmd=%input_cmd, "Ignoring reload command, already issued");
+            },
+            ReloadResult::Disabled => {
+                tracing::warn!(cmd=%input_cmd, "Ignoring reload command, support disabled in config");
             },
             ReloadResult::Stopping(cmd) => {
                 tracing::warn!(%cmd, "Ignoring reload command, stop has been requested");
