@@ -15,6 +15,24 @@
 //!
 #![doc = include_str!("../doc/quick_start.md")]
 //!
+// hacky workaround for retaining doc compilation without all features
+#![cfg_attr(
+    feature = "progress-writer",
+    doc = " [`mapped_progress_writer()`]: ShutdownManager::mapped_progress_writer"
+)]
+#![cfg_attr(
+    not(feature = "progress-writer"),
+    doc = " [`mapped_progress_writer()`]: https://docs.rs/elme-shutdown/latest/elme_shutdown/struct.ShutdownManager.html#method.mapped_progress_writer"
+)]
+#![cfg_attr(
+    feature = "progress-writer",
+    doc = " [`tracing_subscriber::fmt`]: mod@tracing_subscriber::fmt"
+)]
+#![cfg_attr(
+    not(feature = "progress-writer"),
+    doc = " [`mapped_progress_writer()`]: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/index.html"
+)]
+//!
 //! # Feature flags
 //!
 #![doc = include_str!("../doc/feature_flags.md")]
@@ -22,6 +40,24 @@
 //! # Overview
 //!
 #![doc = include_str!("../doc/overview.md")]
+//!
+// hacky workaround for retaining doc compilation without all features
+#![cfg_attr(
+    feature = "progress-writer",
+    doc = " [`mapped_progress_writer()`]: ShutdownManager::mapped_progress_writer"
+)]
+#![cfg_attr(
+    not(feature = "progress-writer"),
+    doc = " [`mapped_progress_writer()`]: https://docs.rs/elme-shutdown/latest/elme_shutdown/struct.ShutdownManager.html#method.mapped_progress_writer"
+)]
+// #![cfg_attr(
+//     feature = "progress-writer",
+//     doc = " [`ProgressWriter`]: crate::ProgressWriter"
+// )]
+#![cfg_attr(
+    not(feature = "progress-writer"),
+    doc = " [`ProgressWriter`]: https://docs.rs/elme-shutdown/latest/elme_shutdown/struct.ProgressWriter.html"
+)]
 
 /// Types relating to the set of supported commands
 pub mod command;

@@ -148,7 +148,7 @@ proper handling of step #3 in either command.
 
 <!--`Reload` can be issued with [`ShutdownManager::reload()`](ShutdownManager::reload)-->
 
-Reload support is enabled by default. It can be disabled through [`ShutdownConfig::reload_enabled`].
+Reload support is enabled by default. It can be disabled through [`ShutdownConfig::reload_support`].
 
 ## Signal handling
 
@@ -215,7 +215,7 @@ Enabling the `progress` feature provides automatic support for teardown progress
 If you are using the [`tracing`](::tracing) crate, it's highly recommended to use
 [`ProgressWriter`] to avoid broken output. This requires the `progress-writer` feature.
 
-See the [`ProgressWriter`] docs for more information.
+See the [`mapped_progress_writer()`] docs for more information.
 
 #### Example output
 

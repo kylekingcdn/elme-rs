@@ -286,7 +286,7 @@ To prevent broken console output, a custom `tracing-subscriber` writer must be i
 - Otherwise, you can replace `progress` with `progress-writer`, as `progress` will be implied
 
 To install the writer, simply add `.map_writer(|w| shutdown_mgr.mapped_progress_writer(w))` *to
-the **end*** of your [`tracing_subscriber::fmt`](mod@tracing_subscriber::fmt) chain.
+the **end*** of your `tracing_subscriber::fmt` chain.
 
 ```rust
 # #[tokio::main]
@@ -315,4 +315,4 @@ while shutdown_mgr.app_should_start() {
 # }
 ```
 
-For additional information & examples, see [`mapped_progress_writer()`](ShutdownManager::mapped_progress_writer).
+For additional information & examples, see [`mapped_progress_writer()`].

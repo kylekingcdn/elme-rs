@@ -21,29 +21,25 @@ pub struct ShutdownConfig {
     /// Whether support is enabled for the handling of `INT`, `TERM`, and `HUP` signals .
     ///
     /// Signals:
-    /// - `INT`/`TERM`: Triggers graceful shutdown. Identical to calling [`ShutdownManager::stop()`](crate::ShutdownManager::stop).
-    /// - `HUP`:
+    /// - **`INT`/`TERM`**: Triggers graceful shutdown. Identical to calling [`ShutdownManager::stop()`](crate::ShutdownManager::stop).
+    /// - **`HUP`**:
     ///   - If reload support is *enabled*, this is identical to calling [`ShutdownManager::reload()`](crate::ShutdownManager::reload).
     ///   - If reload support is *disabled*, this is identical to `INT`/`TERM` handling.
     ///
     /// ## Multiple invocations
     ///
-    /// By default, the application will terminate immediately if a given signal is received more than once.
-    /// This behaviour can be controlled via [`terminate_on_second_signal`](Self::terminate_on_second_signal).
+    /// By default, when a `Stop`-issuing signal is a 2nd time, the application terminates immediately.
     ///
-    /// <div class="warning">
-    /// This applies to `HUP` signals <b>only if reload support is disabled</b>.<br>
-    /// If reload is enabled, only `INT` and `TERM` are affected.
-    /// </div>
+    /// See [`terminate_on_second_signal`](Self::terminate_on_second_signal) for more information.
     #[config(copy, default = true)]
     pub(crate) handle_signals: bool,
 
-    /// Whether support is enabled for immediate program termination when a given signal is received more than once.
+    /// Whether support is enabled for immediate program termination upon receiving a `Stop`-issuing signal more than once.
     ///
-    /// <div class="warning">
-    /// This applies to `HUP` signals <b>only if reload support is disabled</b>.<br>
-    /// If reload is enabled, only `INT` and `TERM` are affected.
-    /// </div>
+    /// `Stop`-issuing signals are:
+    ///   - **`INT`**
+    ///   - **`TERM`**
+    ///   - **`HUP`** (*if `Reload` support has been **disabled***)
     #[config(copy, default = true)]
     pub(crate) terminate_on_second_signal: bool,
 
@@ -65,7 +61,7 @@ pub struct ShutdownConfig {
     #[config(copy, default = true)]
     pub(crate) log_teardown_remaining: bool,
 
-    /// The `tracing::Level` used for the 'remaining tasks' teardown log messages.
+    /// The [`tracing::Level`] used for the 'remaining tasks' teardown log messages.
     ///
     /// Has no effect if messages have been disabled ([`log_teardown_remaining`] set to`false`).
     #[config(
@@ -78,7 +74,7 @@ pub struct ShutdownConfig {
     #[config(copy, default = true)]
     pub(crate) log_teardown_stats: bool,
 
-    /// The `tracing::Level` used for the teardown stats report.
+    /// The [`tracing::Level`] used for the teardown stats report.
     ///
     /// Has no effect if stats messages have been disabled ([`log_teardown_stats`](Self::log_teardown_stats) set to`false`).
     #[config(
@@ -91,7 +87,7 @@ pub struct ShutdownConfig {
     #[config(copy, default = true)]
     pub(crate) log_timeout_stats: bool,
 
-    /// The `tracing::Level` used for the timed-out teardown stats report.
+    /// The [`tracing::Level`] used for the timed-out teardown stats report.
     ///
     /// Has no effect if timeout stats messages have been disabled ([`log_timeout_stats`] set to`false`).
     #[config(
