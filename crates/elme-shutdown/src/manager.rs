@@ -235,7 +235,7 @@ impl ShutdownManager {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # use elme_shutdown::{MappedProgressWriter, ShutdownManager};
+    /// # use elme_shutdown::{progress::MappedProgressWriter, ShutdownManager};
     /// #
     /// # let shutdown_manager = ShutdownManager::default();
     /// let source_writer = // ..
@@ -289,7 +289,7 @@ impl ShutdownManager {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # use elme_shutdown::{ProgressWriter, ShutdownManager};
+    /// # use elme_shutdown::{progress::ProgressWriter, ShutdownManager};
     /// #
     /// # let shutdown_manager = ShutdownManager::default();
     /// let writer = ProgressWriter::new_stdout(
@@ -346,7 +346,7 @@ impl ShutdownManager {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # use elme_shutdown::{ProgressWriter, ShutdownManager};
+    /// # use elme_shutdown::{progress::ProgressWriter, ShutdownManager};
     /// #
     /// # let shutdown_manager = ShutdownManager::default();
     /// let writer = ProgressWriter::new_stderr(
