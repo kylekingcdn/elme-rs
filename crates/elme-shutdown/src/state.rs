@@ -75,7 +75,7 @@ impl fmt::Display for LifecycleStage {
 /// # Usage
 ///
 /// While not used internally, it is provided as an additional method of inferring
-/// application state, and may prove iseful for logging, reporting, etc.
+/// application state, and may prove useful for logging, reporting, etc.
 ///
 /// # Comparison to `LifecycleStage`
 ///

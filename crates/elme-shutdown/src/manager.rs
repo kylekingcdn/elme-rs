@@ -399,7 +399,7 @@ impl ShutdownManager {
     ///   [`pending_command`](Self::pending_command).
     /// - Pending commands are not processed until `inform_started` is called.
     ///
-    /// This guarantee is in place to ensure startup procedures remain consistent, thus prevennting
+    /// This guarantee is in place to ensure startup procedures remain consistent, thus preventing
     /// numerous potential application-state bugs.
     ///
     /// Furthermore, this guarantee works in direct harmony with those provided by

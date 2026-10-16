@@ -120,7 +120,7 @@ Next, we setup the [`ShutdownManager`] in the application's `main()` fn.
 You may want to start with a timeout higher than the default of 10s. This helps avoid timeouts
 off-the-bat, allowing you to get an idea of how long your teardown will typically take.
 
-See [`ShutdownConfigBuilder`] for additional configuration.
+See [`ShutdownConfigBuilder`](config::ShutdownConfigBuilder) for additional configuration.
 
 ```rust
 # pub mod elme {

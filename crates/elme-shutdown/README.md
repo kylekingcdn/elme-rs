@@ -53,11 +53,9 @@ Features for the corresponding crates (`elme`, `elme-shutdown`) are listed below
 
 ## Roadmap
 
-### `0.2.0`
+### `0.3.0`
 
-- [x] serde-optional support
 - [ ] Full docs for configuration
-- [x] Support for disabling progress at run-time
 - [ ] Proper signal handling support on Windows
 - [ ] Support for attaching arbitrary IDs to each instance of a task
       - Unused internally, but would be a nice QoL bonus w/ `tracing` spans

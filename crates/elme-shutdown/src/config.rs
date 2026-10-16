@@ -45,7 +45,7 @@ pub struct ShutdownConfig {
 
     /// Whether support is enabled for live app reloading.
     ///
-    /// When configured, a reload will perform the exact same teardown sequence as a stop.
+    /// A reload will perform the exact same teardown sequence as a stop.
     /// However once teardown is complete, instead of directing the application to exit,
     /// it will instead provide the flow back to app re-init and run.
     ///
