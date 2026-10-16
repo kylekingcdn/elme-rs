@@ -7,6 +7,7 @@ use std::time::Duration;
 /// User configuration for `elme-shutdown`
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Copy, Clone, LibConfig)]
+#[config(example_field_name = "shutdown")]
 pub struct ShutdownConfig {
     /// The time to wait for tasks to gracefully stop.
     ///
@@ -15,6 +16,7 @@ pub struct ShutdownConfig {
     #[config(
         copy, default = Duration::from_secs(10),
         override_from = u64, override_via = SecondsAdapter,
+        override_from_copy,
     )]
     pub(crate) timeout: Duration,
 
@@ -62,8 +64,8 @@ pub struct ShutdownConfig {
     /// This can be useful in scenarios such as:
     /// - disabling support at runtime via [`ShutdownOverrideConfig`]
     /// - multi-binary workspaces, where additive dependency rules cause undesired enablement
-    // #[cfg(feature = "progress")]
-    // #[cfg_attr(docsrs, doc(cfg(all(feature = "progress-writer"))))]
+    #[cfg(feature = "progress")]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "progress"))))]
     // #[cfg_attr(feature = "progress", config(copy, default = true))]
     #[config(copy, default = true)] // !- FIXME: conditional inclusion once doc attr passthrough is fixed
     pub(crate) progress_support: bool,
