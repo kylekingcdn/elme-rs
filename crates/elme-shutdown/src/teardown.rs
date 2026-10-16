@@ -1,9 +1,11 @@
 pub(crate) mod hook;
 pub(crate) mod stats;
 
+pub use self::stats::{TeardownStats, TeardownTimeoutStats};
+
 use self::{
     hook::{HookDeps, HookDispatcher, TeardownHook},
-    stats::{CommonStats, TeardownStats, TeardownTimeoutStats},
+    stats::CommonStats,
 };
 use crate::{
     config::ShutdownConfig,

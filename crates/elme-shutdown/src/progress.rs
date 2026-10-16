@@ -4,7 +4,12 @@ mod rgb;
 #[cfg_attr(docsrs, doc(cfg(all(feature = "progress-writer"))))]
 pub(crate) mod writer;
 
+#[cfg(feature = "progress-writer")]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "progress", feature = "progress-writer"))))]
+pub use self::writer::{MappedProgressWriter, ProgressWriter};
+
 use self::rgb::{Rgb, MidpointTransition, Transition};
+
 use crate::{
     task::map::TransitioningTaskMap,
     teardown::{

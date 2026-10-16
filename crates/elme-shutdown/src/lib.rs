@@ -50,10 +50,10 @@
     not(feature = "progress-writer"),
     doc = " [`mapped_progress_writer()`]: https://docs.rs/elme-shutdown/latest/elme_shutdown/struct.ShutdownManager.html#method.mapped_progress_writer"
 )]
-// #![cfg_attr(
-//     feature = "progress-writer",
-//     doc = " [`ProgressWriter`]: crate::ProgressWriter"
-// )]
+#![cfg_attr(
+    feature = "progress-writer",
+    doc = " [`ProgressWriter`]: progress::ProgressWriter"
+)]
 #![cfg_attr(
     not(feature = "progress-writer"),
     doc = " [`ProgressWriter`]: https://docs.rs/elme-shutdown/latest/elme_shutdown/struct.ProgressWriter.html"
@@ -61,23 +61,23 @@
 
 /// Types relating to the set of supported commands
 pub mod command;
-mod config;
+/// Types used to configure `elme-shutdown`
+pub mod config;
 mod manager;
 mod signal;
 mod state;
 /// Types relating to tasks and task instances
 pub mod task;
-mod teardown;
+/// Teardown reports, stats, etc.
+pub mod teardown;
 
+/// Progress indicator support for task teardown
 #[cfg(feature = "progress")]
-mod progress;
+#[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
+pub mod progress;
 
-pub use config::{ShutdownConfig, ShutdownConfigBuilder, ShutdownOverrideConfig};
+pub use config::{ShutdownConfig, ShutdownOverrideConfig};
 pub use manager::ShutdownManager;
 pub use state::{InformStartingError, InformStartedError, LifecycleStage, RunState};
 pub use task::TaskHandle;
-pub use teardown::stats::{TeardownStats, TeardownTimeoutStats};
 
-#[cfg(feature = "progress-writer")]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "progress", feature = "progress-writer"))))]
-pub use progress::writer::{MappedProgressWriter, ProgressWriter};
