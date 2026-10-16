@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - master
-      - feature/**w
+      - feature/**
   workflow_dispatch:
 
 jobs:
