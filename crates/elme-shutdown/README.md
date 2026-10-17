@@ -4,7 +4,7 @@
 
 # `elme-shutdown`
 
-An `elme` module providing graceful shutdown with a familiar interface (and a ton of QOL).
+An [`elme`](https://crates.io/crates/elme) module providing graceful shutdown with a familiar interface (and a ton of QOL).
 
 [**crates.io**](https://crates.io/crates/elme-shutdown)
 |
