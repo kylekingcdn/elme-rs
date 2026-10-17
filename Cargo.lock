@@ -315,7 +315,7 @@ dependencies = [
 
 [[package]]
 name = "elme"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "elme-config",
  "elme-db",
@@ -355,7 +355,7 @@ version = "0.0.1"
 
 [[package]]
 name = "elme-shutdown"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-channel",
  "chrono",
@@ -849,9 +849,9 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-ports"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1595043ab6c52b01d647b0fdd908a2f2eb01480a93055fe7d03166d5ee3f5b31"
+checksum = "a3e9e95eb703f50074cd2d4ebf5d045a1aea4ef36089273a964dda18ebfbaee4"
 dependencies = [
  "lib-conf",
  "log",
