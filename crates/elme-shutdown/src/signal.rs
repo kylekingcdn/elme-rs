@@ -23,11 +23,9 @@ static ACTIVE: OnceLock<()> = OnceLock::new();
 // !- Platform-agnostic traits
 
 // While not required for functionality, traits are utilized here to ease
-// cross-platform development by providing a contract.
+// cross-platform development by providing an implementation contract.
 //
 // This grants safety even without awareness of platform-specific impls
-
-// ! Signal trait
 
 pub(crate) trait PlatformSignal:
     fmt::Debug + fmt::Display
@@ -40,8 +38,6 @@ pub(crate) trait PlatformSignal:
     fn into_action(self, options: &ShutdownConfig) -> Action;
 }
 
-// ! Signal receiver trait
-
 trait Receiver {
     type Signal: PlatformSignal;
 
@@ -49,8 +45,6 @@ trait Receiver {
 
     async fn listen(&mut self) -> Self::Signal;
 }
-
-// ! Signal set trait
 
 trait PlatformSignalSet {
     type Signal: PlatformSignal;
@@ -66,7 +60,7 @@ trait PlatformSignalSet {
 pub(crate) enum Action {
     Reload,
     Stop,
-    #[allow(dead_code)]
+    #[allow(dead_code)] // silence unused warn on windows
     Terminate,
     /// same as `Terminate`, but indicates an error (non-requested immediate quit)
     Kill,

@@ -26,7 +26,7 @@ pub struct ShutdownConfig {
     /// Whether support for signal handling is enabled.
     ///
     /// # Platform support
-    /// 
+    ///
     /// Signal handling is platform-dependent. Associated behaviours are outlined below.
     ///
     /// ## Unix
@@ -55,7 +55,7 @@ pub struct ShutdownConfig {
     /// ### Triggering `Reload`
     ///
     /// Windows does not have an event equivalent to `SIGHUP`. Therefore, by default, a `Reload` command can only be triggered programmatically
-    /// via [`ShutdownManager::reload()`](crate::ShutdownManager::reload). 
+    /// via [`ShutdownManager::reload()`](crate::ShutdownManager::reload).
     ///
     /// For `SIGHUP`-like behavior, [`reload_on_ctrl_break`](Self::reload_on_ctrl_break) can be enabled to issue `Reload`
     /// upon `CTRL`+`BREAK`, as opposed to the default of issuing `Stop`.
@@ -79,7 +79,7 @@ pub struct ShutdownConfig {
     #[cfg_attr(docsrs, doc(cfg(any(unix, windows))))]
     #[config(copy, default = true)]
     pub(crate) terminate_on_second_signal: bool,
-    
+
     /// Whether support for issuing `Reload` upon receiving a Windows `CTRL`+`BREAK` signal is enabled.
     ///
     /// - Has no effect if [`handle_signals`](Self::handle_signals) has been disabled.

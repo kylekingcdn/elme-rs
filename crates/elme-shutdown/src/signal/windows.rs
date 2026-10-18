@@ -122,7 +122,6 @@ pub(crate) enum CtrlSignal {
 impl CtrlSignal {
     pub(crate) fn try_new(signal: SignalType) -> Result<Self, io::Error> {
         let out = match signal {
-            // FIXME: unwraps
             SignalType::C => ctrl_c()?.into(),
             SignalType::Break => ctrl_break()?.into(),
             SignalType::Close => ctrl_close()?.into(),

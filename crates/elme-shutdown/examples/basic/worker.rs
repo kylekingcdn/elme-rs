@@ -283,7 +283,7 @@ impl WorkerManager {
     const CHANNEL_SIZE: usize = 10;
 
     pub fn try_new(handle: TaskHandle) -> color_eyre::Result<Self> {
-        tracing::info!("Inititializing WorkerManager");
+        tracing::info!("Initializing WorkerManager");
         // init intermittent worker
         let inter = IntermittentWorker::new(handle.register_task("Intermittent worker")?);
 
