@@ -57,6 +57,8 @@ incremented.
 
 Once a `TaskHandle` is dropped, the instance counter associated with the task name is decremented.
 
+Teardown is considered complete once all task handles are dropped (all instance counters drop to 0).
+
 ##### Additional uses
 
 A [`TaskHandle`] can also be used to:
@@ -77,10 +79,6 @@ but `Reload` commands too.
 
 To refer to this period as "shutting down", when the application is actually restarting, would
 be confusing to say the least.
-
-<!--
-Teardown is considered complete once all task handles are dropped (all instance counters == 0).
--->
 
 ## Lifecycle
 
@@ -129,7 +127,7 @@ After issuing `Stop`, the following sequence of steps occur:
 2. The application has its control returned to `main()`
 3. The application exits
 
-<!--`Stop` can be issued with [`ShutdownManager::stop()`](ShutdownManager::stop)-->
+`Stop` can be issued with [`ShutdownManager::stop()`](ShutdownManager::stop).
 
 #### Reload
 
@@ -146,9 +144,8 @@ a single additional line in your `main()` function.
 A helper method, [`app_should_start`](ShutdownManager::app_should_start), is provided for
 proper handling of step #3 in either command.
 
-<!--`Reload` can be issued with [`ShutdownManager::reload()`](ShutdownManager::reload)-->
-
-Reload support is enabled by default. It can be disabled through [`ShutdownConfig::reload_support`].
+- `Reload` can be issued with [`ShutdownManager::reload()`](ShutdownManager::reload).
+- Reload support is enabled by default. It can be disabled via [`ShutdownConfig::reload_support`].
 
 ## Signal handling
 
