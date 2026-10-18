@@ -1,7 +1,10 @@
-use lib_conf::{LibConfig, adapter::{
-    duration::SecondsAdapter,
-    tracing_level::TracingLevelAdapter,
-}};
+use lib_conf::{
+    LibConfig,
+    adapter::{
+        duration::SecondsAdapter,
+        tracing_level::TracingLevelAdapter,
+    }
+};
 use std::time::Duration;
 
 /// User configuration for `elme-shutdown`
@@ -20,42 +23,86 @@ pub struct ShutdownConfig {
     )]
     pub(crate) timeout: Duration,
 
-    /// Whether support is enabled for the handling of `INT`, `TERM`, and `HUP` signals .
+    /// Whether support for signal handling is enabled.
     ///
-    /// Signals:
+    /// # Platform support
+    /// 
+    /// Signal handling is platform-dependent. Associated behaviours are outlined below.
+    ///
+    /// ## Unix
+    ///
+    /// Enables handling of `INT`, `TERM`, `QUIT`, and `HUP` signals.
+    ///
+    /// ### Behavior
+    ///
+    /// - **`QUIT`**: Terminates immediately, without gracefully stopping tasks.
     /// - **`INT`/`TERM`**: Triggers graceful shutdown. Identical to calling [`ShutdownManager::stop()`](crate::ShutdownManager::stop).
-    /// - **`HUP`**:
-    ///   - If reload support is *enabled*, this is identical to calling [`ShutdownManager::reload()`](crate::ShutdownManager::reload).
-    ///   - If reload support is *disabled*, this is identical to `INT`/`TERM` handling.
+    /// - **`HUP`**: When [`reload_support`](Self::reload_support)
+    ///   - is ***enabled*** (default), this is identical to calling [`ShutdownManager::reload()`](crate::ShutdownManager::reload).
+    ///   - is ***disabled***, this is identical to calling [`ShutdownManager::stop()`](crate::ShutdownManager::stop).
     ///
-    /// ## Multiple invocations
+    /// ## Windows
+    ///
+    /// Enables handling of the following [`CTRL` events](https://learn.microsoft.com/en-us/windows/console/setconsolectrlhandler):
+    /// - `C`, `BREAK`, `CLOSE`, `LOGOFF`, `SHUTDOWN`.
+    ///
+    /// ### Behavior
+    ///
+    /// By default, all events share the same behavior:
+    ///
+    /// - Triggers graceful shutdown. Identical to calling [`ShutdownManager::stop()`](crate::ShutdownManager::stop).
+    ///
+    /// ### Triggering `Reload`
+    ///
+    /// Windows does not have an event equivalent to `SIGHUP`. Therefore, by default, a `Reload` command can only be triggered programmatically
+    /// via [`ShutdownManager::reload()`](crate::ShutdownManager::reload). 
+    ///
+    /// For `SIGHUP`-like behavior, [`reload_on_ctrl_break`](Self::reload_on_ctrl_break) can be enabled to issue `Reload`
+    /// upon `CTRL`+`BREAK`, as opposed to the default of issuing `Stop`.
+    ///
+    /// # Multiple invocations
     ///
     /// By default, when a `Stop`-issuing signal is a 2nd time, the application terminates immediately.
     ///
     /// See [`terminate_on_second_signal`](Self::terminate_on_second_signal) for more information.
+    #[cfg(any(unix, windows))]
+    #[cfg_attr(docsrs, doc(cfg(any(unix, windows))))]
     #[config(copy, default = true)]
     pub(crate) handle_signals: bool,
 
     /// Whether support is enabled for immediate program termination upon receiving a `Stop`-issuing signal more than once.
     ///
-    /// `Stop`-issuing signals are:
-    ///   - **`INT`**
-    ///   - **`TERM`**
-    ///   - **`HUP`** (*if `Reload` support has been **disabled***)
+    /// - Has no effect if [`handle_signals`](Self::handle_signals) has been disabled.
+    ///
+    /// See [`handle_signals`](Self::handle_signals) for a list of `Stop`-issuing signals.
+    #[cfg(any(unix, windows))]
+    #[cfg_attr(docsrs, doc(cfg(any(unix, windows))))]
     #[config(copy, default = true)]
     pub(crate) terminate_on_second_signal: bool,
+    
+    /// Whether support for issuing `Reload` upon receiving a Windows `CTRL`+`BREAK` signal is enabled.
+    ///
+    /// - Has no effect if [`handle_signals`](Self::handle_signals) has been disabled.
+    /// - Has no effect if [`reload_support`](Self::reload_support) has been disabled (`BREAK` will continue to issue `Stop`).
+    ///
+    /// **Note:** This option is only exposed on Windows.
+    #[cfg(any(docsrs, windows))]
+    #[cfg_attr(docsrs, doc(cfg(windows)))]
+    #[config(copy, default = false)]
+    pub(crate) reload_on_ctrl_break: bool,
 
     /// Whether support is enabled for live app reloading.
     ///
-    /// A reload will perform the exact same teardown sequence as a stop.
-    /// However once teardown is complete, instead of directing the application to exit,
-    /// it will instead provide the flow back to app re-init and run.
+    /// Issuing a `Reload` will perform the exact same teardown sequence as `Stop`.
+    /// However, once teardown is complete - instead of directing the application to exit -
+    /// the control-flow will once again begin the startup and run stages.
     ///
-    /// A reload can be invoked via [`ShutdownManager::reload()`](crate::ShutdownManager::reload) or by sending the process a `HUP` signal
-    /// (when [`handle_signals`](Self::handle_signals()) is enabled).
+    /// A reload can be invoked via [`ShutdownManager::reload()`](crate::ShutdownManager::reload), or by sending the process a `HUP` signal
+    /// (on Unix) when [`handle_signals`](Self::handle_signals()) is enabled.
     ///
-    /// If disabled, `HUP` signals are handled identically to `INT` and `TERM`.
-    /// Calls to [`ShutdownManager::reload()`](crate::ShutdownManager::reload) will be silently ignored.
+    /// **If disabled:**
+    /// - Calls to [`ShutdownManager::reload()`](crate::ShutdownManager::reload) will be ignored
+    /// - Any `Reload`-issuing signals will instead issue `Stop`
     #[config(copy, default = true)]
     pub(crate) reload_support: bool,
 
@@ -65,9 +112,8 @@ pub struct ShutdownConfig {
     /// - disabling support at runtime via [`ShutdownOverrideConfig`]
     /// - multi-binary workspaces, where additive dependency rules cause undesired enablement
     #[cfg(feature = "progress")]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "progress"))))]
-    // #[cfg_attr(feature = "progress", config(copy, default = true))]
-    #[config(copy, default = true)] // !- FIXME: conditional inclusion once doc attr passthrough is fixed
+    #[cfg_attr(docsrs, doc(cfg(feature = "progress")))]
+    #[config(copy, default = true)]
     pub(crate) progress_support: bool,
 
     /// Enables logging of remaining teardown tasks.

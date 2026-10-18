@@ -1,45 +1,109 @@
+#[cfg(unix)]
+mod unix;
+
+#[cfg(windows)]
+mod windows;
+
 use crate::{
     config::ShutdownConfig,
     manager::ShutdownManager,
     state::LockingSharedState,
 };
 
+use std::collections::HashSet;
 use std::fmt;
+use std::hash::Hash;
 use std::process;
 use std::sync::{Mutex, OnceLock};
-use tokio::signal::unix::{signal, Signal, SignalKind};
 
 // !- Statics
 
 static ACTIVE: OnceLock<()> = OnceLock::new();
 
+// !- Platform-agnostic traits
+
+// While not required for functionality, traits are utilized here to ease
+// cross-platform development by providing a contract.
+//
+// This grants safety even without awareness of platform-specific impls
+
+// ! Signal trait
+
+pub(crate) trait PlatformSignal:
+    fmt::Debug + fmt::Display
+    + Clone + Copy
+    + PartialEq + Eq
+    + Hash
+{
+    fn as_str(self) -> &'static str;
+
+    fn into_action(self, options: &ShutdownConfig) -> Action;
+}
+
+// ! Signal receiver trait
+
+trait Receiver {
+    type Signal: PlatformSignal;
+
+    fn new(signal: Self::Signal) -> Self;
+
+    async fn listen(&mut self) -> Self::Signal;
+}
+
+// ! Signal set trait
+
+trait PlatformSignalSet {
+    type Signal: PlatformSignal;
+
+    fn new() -> Self;
+
+    async fn select(&mut self) -> Self::Signal;
+}
+
+// !- Action
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Action {
+    Reload,
+    Stop,
+    #[allow(dead_code)]
+    Terminate,
+    /// same as `Terminate`, but indicates an error (non-requested immediate quit)
+    Kill,
+}
+
 // !- Signal handler state
 
-/// Uses internal state to track multiple invocations of a signal.
-///
-/// Does not use the shared state's
-/// [`IssuedCommand`](crate::command::IssuedCommand) member for tracking.
-/// This is because issued signals should be counted independently.
-///
-/// Further, issuing a stop internally (from app code) should not cause an
-/// immediate hard kill on the first signal (e.g. from `ctrl+c`).
-#[derive(Debug, Copy, Clone, Default)]
-struct SignalHandlerState {
-    pub received_int: bool,
-    pub received_term: bool,
-    pub received_hup: bool,
+#[derive(Debug, Clone)]
+struct SignalHandlerState<S: PlatformSignal> {
+    received: HashSet<S>,
+}
+impl<S: PlatformSignal> SignalHandlerState<S> {
+    pub(crate) fn has_received(&self, signal: S) -> bool {
+        self.received.contains(&signal)
+    }
+    pub(crate) fn mark_received(&mut self, signal: S) {
+        self.received.insert(signal);
+    }
+}
+impl<S: PlatformSignal> Default for SignalHandlerState<S> {
+    fn default() -> Self {
+        Self {
+            received: HashSet::new()
+        }
+    }
 }
 
 // !- Signal handler
 
 #[derive(Debug)]
-pub(crate) struct SignalHandler {
-    state: Mutex<SignalHandlerState>,
+pub(crate) struct SignalHandler<S: PlatformSignal> {
+    state: Mutex<SignalHandlerState<S>>,
     shared: LockingSharedState,
 
     options: ShutdownConfig,
 }
-impl SignalHandler {
+impl<S: PlatformSignal> SignalHandler<S> {
     const EXIT_CODE_FROM_SIGNAL: u8 = 0;
 
     fn new(shared: LockingSharedState) -> Self {
@@ -50,81 +114,37 @@ impl SignalHandler {
             options,
         }
     }
-    pub(crate) fn new_initialized(shared: LockingSharedState) -> Self {
+    fn new_initialized_impl(shared: LockingSharedState) -> Self {
         let handler = Self::new(shared);
         ACTIVE.set(()).expect("Global signal handler initialized only once!");
 
         handler
     }
-    pub(crate) fn run_in_background(self) {
-        tokio::spawn(async move { self.run().await; });
-    }
-    pub(crate) async fn run(self) {
-        let mut hup = SignalReceiver::new(SignalType::Hup);
-        let mut int = SignalReceiver::new(SignalType::Int);
-        let mut term = SignalReceiver::new(SignalType::Term);
-        let mut quit = SignalReceiver::new(SignalType::Quit);
+
+    async fn run_for_platform<T: PlatformSignalSet<Signal = S>>(self) {
+        let mut signal_set = T::new();
 
         loop {
-            let kind = tokio::select! {
-                biased;
-                s = quit.listen() => s,
-                s = int.listen() => s,
-                s = term.listen() => s,
-                s = hup.listen() => s,
-            };
-            tracing::info!("Received SIG{kind}");
-            let action = self.resolve_action(kind);
+            let kind = signal_set.select().await;
+            tracing::info!("Received signal: {kind}");
+
+            let mut action = kind.into_action(&self.options);
+
+            // handle term on 2nd signal receive
+            if action == Action::Stop && self.options.terminate_on_second_signal() {
+                let mut locked = self.state.lock().unwrap();
+                if locked.has_received(kind) {
+                    tracing::warn!("{kind} signal was invoked for a 2nd time - terminating shortly...");
+                    action = Action::Kill;
+                } else {
+                    locked.mark_received(kind);
+                }
+            }
+
             self.handle_action(action);
         }
     }
-    fn resolve_action(&self, kind: SignalType) -> Action {
-        let mut got_second = false;
-        let action = match kind {
-            SignalType::Quit => {
-                Action::Terminate
-            }
 
-            SignalType::Int => {
-                if self.options.terminate_on_second_signal() &&
-                   self.state.lock().unwrap().received_int {
-                    got_second = true;
-                }
-                self.state.lock().unwrap().received_int = true;
-                Action::Stop
-            }
-
-            SignalType::Term => {
-                if self.options.terminate_on_second_signal() &&
-                   self.state.lock().unwrap().received_term {
-                    got_second = true;
-                }
-                self.state.lock().unwrap().received_term = true;
-                Action::Stop
-            }
-
-            SignalType::Hup => {
-                if self.options.reload_support() {
-                    Action::Reload
-                } else {
-                    if self.options.terminate_on_second_signal() &&
-                       self.state.lock().unwrap().received_hup {
-                        got_second = true;
-                    }
-                    self.state.lock().unwrap().received_hup = true;
-                    Action::Stop
-                }
-            }
-        };
-
-        // override to Kill, log warning
-        if got_second {
-            tracing::warn!("SIG{kind} was invoked for a 2nd time - terminating shortly...");
-            Action::Kill
-        } else {
-            action
-        }
-    }
     fn handle_action(&self, action: Action) {
         match action {
             Action::Kill => {
@@ -150,67 +170,32 @@ impl SignalHandler {
     }
 }
 
-// !- Signal receiver
+// ! Unix impl
 
-#[derive(Debug)]
-pub(crate) struct SignalReceiver {
-    kind: SignalType,
-    signal: Signal,
-}
-impl SignalReceiver {
-    fn new(kind: SignalType) -> Self {
-        let sig = signal(kind.into()).unwrap_or_else(|_|
-            panic!("Failed to register signal receiver for {kind}")
-        );
-        Self {
-            signal: sig,
-            kind,
-        }
+#[cfg(unix)]
+impl SignalHandler<unix::SignalType> {
+    pub(crate) fn new_initialized(shared: LockingSharedState) -> Self {
+        Self::new_initialized_impl(shared)
     }
-    async fn listen(&mut self) -> SignalType {
-        self.signal.recv().await;
-        self.kind
+    pub(crate) async fn run(self) {
+        self.run_for_platform::<unix::SignalSet>().await;
+    }
+    pub(crate) fn run_in_background(self) {
+        tokio::spawn(async move { self.run().await; });
     }
 }
 
-// !- Action
+// ! Windows impl
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum Action {
-    Reload,
-    Stop,
-    Terminate,
-    /// same as `Terminate`, but indicates an error (non-requested immediate quit)
-    Kill,
-}
-
-// !- Signal kind
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum SignalType {
-    Hup,
-    Int,
-    Term,
-    Quit,
-}
-impl fmt::Display for SignalType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            Self::Hup => "HUP",
-            Self::Int => "INT",
-            Self::Term => "TERM",
-            Self::Quit => "QUIT",
-        };
-        write!(f, "{name}")
+#[cfg(windows)]
+impl SignalHandler<windows::SignalType> {
+    pub(crate) fn new_initialized(shared: LockingSharedState) -> Self {
+        Self::new_initialized_impl(shared)
     }
-}
-impl From<SignalType> for SignalKind {
-    fn from(sig: SignalType) -> Self {
-        match sig {
-            SignalType::Hup => Self::hangup(),
-            SignalType::Int => Self::interrupt(),
-            SignalType::Term => Self::terminate(),
-            SignalType::Quit => Self::quit(),
-        }
+    pub(crate) async fn run(self) {
+        self.run_for_platform::<windows::SignalSet>().await;
+    }
+    pub(crate) fn run_in_background(self) {
+        tokio::spawn(async move { self.run().await; });
     }
 }

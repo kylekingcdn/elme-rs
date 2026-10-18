@@ -152,30 +152,40 @@ Reload support is enabled by default. It can be disabled through [`ShutdownConfi
 
 ## Signal handling
 
-`elme-shutdown` ships with optional support for signal handling.
-This allows, for example, triggering a `stop` command on `ctrl`+`c`.
+`elme-shutdown` ships with support for signal handling.
+This allows, for example, triggering a `Stop` command on `ctrl`+`c`.
 
-The following table lists supported signals and the command associated with their invocation.
+Signal handling is enabled by default.
+It can be disabled via [`ShutdownConfig::handle_signals`].
+
+The following tables list supported signals by platform and the commands associated with their invocation.
+
+### Unix
 
 | Signal | Command |
 | ------ | ------- |
+| `QUIT` | n/a (terminates program immediately) |
 | `INT` | `Stop` |
 | `TERM` | `Stop` |
 | `HUP` | `Reload` (when enabled, otherwise `Stop`) |
 
-<!--
-**Note:** If reload support has been disabled (via [`ShutdownConfig`]),
-a `HUP` signal invokes `Stop` instead of `Reload`.
--->
+### Windows
 
-Signal handling is enabled by default.
-It can be disabled through [`ShutdownConfig::handle_signals`].
+| Signal | Command |
+| ------ | ------- |
+| `CTRL-C` | `Stop` |
+| `CTRL-CLOSE` | `Stop` |
+| `CTRL-LOGOFF` | `Stop` |
+| `CTRL-SHUTDOWN` | `Stop` |
+| `CTRL-BREAK` | `Stop` **\*** |
+
+**\***: This behavior can be changed to `Reload` via [`ShutdownConfig::reload_on_ctrl_break`].
 
 #### Repeat signal invocations
 
-By default, if a signal is received more than once, the application will be terminated immediately.
+By default, if a `Stop`-issuing signal is received more than once, the application will be terminated immediately.
 
-This behaviour can be disabled through [`ShutdownConfig::terminate_on_second_signal`].
+This behaviour can be disabled via [`ShutdownConfig::terminate_on_second_signal`].
 
 ## Teardown futures
 

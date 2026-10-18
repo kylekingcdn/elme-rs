@@ -1,7 +1,6 @@
 use crate::{
     command::{Command, CommandResult, ReloadResult, StopResult},
     config::{ShutdownConfig, ShutdownConfigBuilder},
-    signal::SignalHandler,
     state::{
         InformStartingError, InformStartedError,
         LifecycleStage, LockingSharedState,
@@ -15,6 +14,9 @@ use crate::{
     },
     teardown::stats::{TeardownStats, TeardownTimeoutStats},
 };
+
+#[cfg(any(unix, windows))]
+use crate::signal::SignalHandler;
 
 #[cfg(feature = "progress-writer")]
 use crate::progress::writer::{MappedProgressWriter, ProgressWriter};
@@ -63,6 +65,7 @@ impl ShutdownManager {
         let shared = Arc::new(Mutex::new(state));
 
         // register global signal handler
+        #[cfg(any(unix, windows))]
         if options.handle_signals() {
             let handler = SignalHandler::new_initialized(shared.clone());
             handler.run_in_background();

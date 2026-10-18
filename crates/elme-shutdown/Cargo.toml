@@ -40,7 +40,7 @@ indicatif = { workspace = true, optional = true }
 lib-conf = { workspace = true, features = ["derive", "adapter-tracing-level"] }
 serde = { workspace = true, optional = true, features = ["std", "derive"] }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt", "signal", "sync", "time"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 tokio-util = { workspace = true, features = ["tracing"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, optional = true }
@@ -52,6 +52,9 @@ indicatif = { workspace = true }
 rand = { workspace = true, features = ["thread_rng"] }
 tokio = { workspace = true, features = ["full"] }
 tracing-subscriber = { workspace = true, features = ["default", "env-filter"] }
+
+[target.'cfg(any(unix, windows))'.dependencies]
+tokio = { workspace = true, features = ["signal"] }
 
 [package.metadata.docs.rs]
 all-features = true
