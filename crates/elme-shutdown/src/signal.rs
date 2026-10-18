@@ -14,7 +14,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
 use std::process;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 
 // !- Statics
 
@@ -98,7 +98,7 @@ impl<S: PlatformSignal> Default for SignalHandlerState<S> {
 
 #[derive(Debug)]
 pub(crate) struct SignalHandler<S: PlatformSignal> {
-    state: Mutex<SignalHandlerState<S>>,
+    state: SignalHandlerState<S>,
     shared: LockingSharedState,
 
     options: ShutdownConfig,
@@ -109,7 +109,7 @@ impl<S: PlatformSignal> SignalHandler<S> {
     fn new(shared: LockingSharedState) -> Self {
         let options = shared.lock().unwrap().options();
         Self {
-            state: Mutex::new(SignalHandlerState::default()),
+            state: SignalHandlerState::default(),
             shared,
             options,
         }
@@ -121,23 +121,22 @@ impl<S: PlatformSignal> SignalHandler<S> {
         handler
     }
 
-    async fn run_for_platform<T: PlatformSignalSet<Signal = S>>(self) {
+    async fn run_for_platform<T: PlatformSignalSet<Signal = S>>(mut self) {
         let mut signal_set = T::new();
 
         loop {
-            let kind = signal_set.select().await;
-            tracing::info!("Received signal: {kind}");
+            let signal_kind = signal_set.select().await;
+            tracing::info!("Received signal: {signal_kind}");
 
-            let mut action = kind.into_action(&self.options);
+            let mut action = signal_kind.into_action(&self.options);
 
             // handle term on 2nd signal receive
             if action == Action::Stop && self.options.terminate_on_second_signal() {
-                let mut locked = self.state.lock().unwrap();
-                if locked.has_received(kind) {
-                    tracing::warn!("{kind} signal was invoked for a 2nd time - terminating shortly...");
+                if self.state.has_received(signal_kind) {
+                    tracing::warn!("{signal_kind} signal was invoked for a 2nd time - terminating shortly...");
                     action = Action::Kill;
                 } else {
-                    locked.mark_received(kind);
+                    self.state.mark_received(signal_kind);
                 }
             }
 
