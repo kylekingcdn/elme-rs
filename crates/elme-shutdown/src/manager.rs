@@ -670,15 +670,13 @@ impl ShutdownManager {
     /// instances of a task) are still running. This is a critical aspect of graceful shutdown, as
     /// application exit will be delayed until all instance counters drop to 0.
     ///
-    /// Registering a task (or calling `try_clone` a handle) will increment the instance count
-    /// associated with the task name).
+    /// Registering a task (or calling `try_clone` on a handle) will increment the instance count
+    /// associated with the task name.
     ///
     /// Once a `TaskHandle` goes out of scope (is dropped), the counter is decremented.
     ///
     /// Therefore, for graceful shutdown to work correctly, it's critical that all `TaskHandle`s
-    /// are provided to workers as owned and not borrowed or cloned.
-    /// (See the [Initializing concurrent workers](#initializing-concurrent-workers) example below
-    /// for handling this scenario)
+    /// are provided to workers as owned and not borrowed.
     ///
     /// # Examples
     ///
@@ -808,6 +806,33 @@ impl ShutdownManager {
     /// ```
     pub fn register_task(&self, task_name: &'static str) -> Result<TaskHandle, RegisterError> {
         SharedState::register_task(&self.shared, task_name)
+    }
+
+    /// Creates a new [`TaskHandle`] for a task with the provided name and instance ID
+    ///
+    /// Instance IDs have no usage internally, and are provided entirely for convenience.
+    ///
+    /// A common use-case for instance IDs is providing [`tracing::Span`](::tracing::Span) or OTEL traces with the context required to
+    /// differentiate between and filter events of specific worker instances - a frequent requirement when managing multi-instance workers.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`RegisterError`] if task registration fails.
+    ///
+    /// Task registration only fails if the attempt occurs during teardown.
+    ///
+    /// # Guarantees
+    ///
+    /// - Task registration ***never fails*** during `Startup` or `Running` stages.
+    /// - Task registration ***always fails*** during the `Teardown` stage.
+    ///
+    /// ---
+    ///
+    /// For more information on task registration, see [`register_task()`](Self::register_task).
+    #[cfg(feature = "instance-ids")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "instance-ids")))]
+    pub fn register_task_with_id(&self, task_name: &'static str, instance_id: impl std::fmt::Display) -> Result<TaskHandle, RegisterError> {
+        SharedState::register_task_with_id(&self.shared, task_name, instance_id)
     }
 
     /// Returns a list of tasks and associated instance counts

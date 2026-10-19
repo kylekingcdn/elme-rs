@@ -188,19 +188,16 @@ pub(crate) struct JobMessage {
 /// This can be implemented with a channel, message broker, pub/sub, etc.
 pub(crate) struct DelegatedWorker {
     handle: TaskHandle,
-    id: u16,
     rx: async_channel::Receiver<JobMessage>,
 }
 impl DelegatedWorker {
     pub(crate) fn new(
         handle: TaskHandle,
-        id: u16,
         rx: async_channel::Receiver<JobMessage>,
     ) -> Self {
-        tracing::debug!(worker=handle.task_name(), %id, "Constructing");
+        tracing::debug!(worker=handle.task_name(), id=handle.instance_id(), "Constructing");
         Self {
             handle,
-            id,
             rx,
         }
     }
@@ -253,14 +250,14 @@ impl DelegatedWorker {
     /// >       How much 'breathing room' you'll require is up to you!
     /// > Simplifying to `max_jobs * avg_job_time_secs / worker_count * grace_factor`
     pub(crate) async fn run(self) {
-        tracing::info!(worker=self.handle.task_name(), id=%self.id, "Running");
+        tracing::info!(worker=self.handle.task_name(), id=self.handle.instance_id(), "Running");
 
         while let Ok(msg) = self.rx.recv().await {
-            tracing::info!(worker=self.handle.task_name(), id=%self.id, "Working on job (queued: {})", self.rx.len()+1);
+            tracing::info!(worker=self.handle.task_name(), id=self.handle.instance_id(), "Working on job (queued: {})", self.rx.len()+1);
             tokio::time::sleep(msg.work_time).await; // simulate work
         }
 
-        tracing::info!(worker=self.handle.task_name(), id=%self.id, "Stopping");
+        tracing::info!(worker=self.handle.task_name(), id=self.handle.instance_id(), "Stopping");
     }
 }
 
@@ -302,8 +299,7 @@ impl WorkerManager {
         tracing::debug!("Building delegated workers");
         for i in 0..Self::WORKER_COUNT {
             delegated.push(DelegatedWorker::new(
-                handle.register_task("Delegated worker")?,
-                u16::try_from(i).unwrap(),
+                handle.register_task_with_id("Delegated worker", i)?,
                 rx.clone(),
             ));
         }

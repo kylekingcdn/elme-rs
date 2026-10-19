@@ -59,6 +59,14 @@ Once a `TaskHandle` is dropped, the instance counter associated with the task na
 
 Teardown is considered complete once all task handles are dropped (all instance counters drop to 0).
 
+##### Task instance IDs
+
+Each instance of a task can optionally be assigned an ID during registration via [`ShutdownManager::register_task_with_id`].
+
+Instance IDs have no usage internally, and are provided entirely for convenience.
+
+To reduce the footprint of each `TaskHandle`, **instance ID support is gated behind the `instance-ids` feature**.
+
 ##### Additional uses
 
 A [`TaskHandle`] can also be used to:

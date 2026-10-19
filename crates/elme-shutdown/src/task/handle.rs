@@ -69,12 +69,27 @@ use std::fmt;
 /// ```
 pub struct TaskHandle {
     task_name: &'static str,
+    #[cfg(feature = "instance-ids")]
+    instance_id: Option<String>,
+
     shared: LockingSharedState,
 }
 impl TaskHandle {
     pub(crate) fn new(task_name: &'static str, shared: LockingSharedState) -> Self {
         Self {
             task_name,
+            #[cfg(feature = "instance-ids")]
+            instance_id: None,
+
+            shared,
+        }
+    }
+    #[cfg(feature = "instance-ids")]
+    pub(crate) fn new_with_id(task_name: &'static str, instance_id: impl fmt::Display, shared: LockingSharedState) -> Self {
+        Self {
+            task_name,
+            instance_id: Some(instance_id.to_string()),
+
             shared,
         }
     }
@@ -103,9 +118,42 @@ impl TaskHandle {
         SharedState::register_task(&self.shared, task_name)
     }
 
+    /// Creates a new [`TaskHandle`] for a task with the provided name and instance ID
+    ///
+    /// This is identical to
+    /// [`ShutdownManager::register_task_with_id`](crate::ShutdownManager::register_task_with_id).
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`RegisterError`] if task registration fails.
+    ///
+    /// Task registration only fails if the attempt occurs during teardown.
+    ///
+    /// # Guarantees
+    ///
+    /// - Task registration ***never fails*** during `Startup` or `Running` stages.
+    /// - Task registration ***always fails*** during the `Teardown` stage.
+    ///
+    /// ---
+    ///
+    /// See the
+    /// [`ShutdownManager` method](crate::ShutdownManager::register_task) for more information.
+    #[cfg(feature = "instance-ids")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "instance-ids")))]
+    pub fn register_task_with_id(&self, task_name: &'static str, instance_id: impl fmt::Display) -> Result<TaskHandle, RegisterError> {
+        SharedState::register_task_with_id(&self.shared, task_name, instance_id)
+    }
+
     /// Creates a new [`TaskHandle`] for a task with the same name as `self`
     ///
     /// This is identical to registering a task with the same name.
+    ///
+    /// # Instance IDs
+    ///
+    /// Note that, when using the `instance-ids` feature, the returned `TaskHandle` will have it's
+    /// `instance_id` set to `None` - **even if the source handle has an ID present**.
+    ///
+    /// To assign an instance ID, use [`try_clone_with_id()`](Self::try_clone_with_id) instead.
     ///
     /// # Errors
     ///
@@ -126,10 +174,47 @@ impl TaskHandle {
         SharedState::register_task(&self.shared, self.task_name)
     }
 
+    /// Creates a new [`TaskHandle`] for a task with the same name as `self`, and assigns the provided
+    /// instance ID
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`RegisterError`] if task registration fails.
+    ///
+    /// Task registration only fails if the attempt occurs during teardown.
+    ///
+    /// # Guarantees
+    ///
+    /// - Task registration ***never fails*** during `Startup` or `Running` stages.
+    /// - Task registration ***always fails*** during the `Teardown` stage.
+    ///
+    /// ---
+    ///
+    /// See the
+    /// [`ShutdownManager` method](crate::ShutdownManager::register_task) for more information.
+    #[cfg(feature = "instance-ids")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "instance-ids")))]
+    pub fn try_clone_with_id(&self, instance_id: impl fmt::Display) -> Result<TaskHandle, RegisterError> {
+        SharedState::register_task_with_id(&self.shared, self.task_name, instance_id)
+    }
+
     /// The task name assigned during registration
     #[must_use]
     pub fn task_name(&self) -> &'static str {
         self.task_name
+    }
+
+    /// The instance ID assigned during registration, if any
+    ///
+    /// Instance IDs have no usage internally, and are provided entirely for convenience.
+    ///
+    /// A common use-case for instance IDs is providing [`tracing::Span`](::tracing::Span) or OTEL traces with the context required to
+    /// differentiate between and filter events of specific worker instances - a frequent requirement when managing multi-instance workers.
+    #[cfg(feature = "instance-ids")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "instance-ids")))]
+    #[must_use]
+    pub fn instance_id(&self) -> Option<&str> {
+        self.instance_id.as_ref().map(|id| id.as_str())
     }
 
     /// Provides access to the [`ShutdownManager`]

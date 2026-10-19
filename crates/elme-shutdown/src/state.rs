@@ -252,6 +252,21 @@ impl SharedState {
             Ok(handle)
         }
     }
+    #[cfg(feature = "instance-ids")]
+    pub(crate) fn register_task_with_id(
+        shared: &LockingSharedState,
+        task_name: &'static str,
+        instance_id: impl fmt::Display,
+    ) -> Result<TaskHandle, RegisterError> {
+        let mut locked = shared.lock().unwrap();
+        if locked.teardown_started() {
+            Err(RegisterError::TearingDown(task_name))
+        } else {
+            locked.task_registry.register_task(task_name);
+            let handle = TaskHandle::new_with_id(task_name, instance_id, shared.clone());
+            Ok(handle)
+        }
+    }
     pub(crate) fn unregister_task(shared: &LockingSharedState, task_name: &'static str) {
         shared.lock().unwrap().task_registry.unregister_task(task_name);
     }
