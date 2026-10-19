@@ -56,15 +56,13 @@ Features for the corresponding crates (`elme`, `elme-shutdown`) are listed below
 
 ## Roadmap
 
-### `0.2.3`
+### `0.2.4`
 
 - [ ] Extended configuration docs (e.g. examples for config at run-time)
-- [x] Support for attaching arbitrary IDs to each instance of a task
-      - Unused internally, but would be a nice QoL bonus w/ `tracing` spans
 
 ### Upcoming
 
 - [ ] Pre-defined output formats for teardown log messages, e.g:
-      - Log each finished instance and output remaining tasks w/ counts (current behaviour)
-      - Log each task once when all of its instances have stopped
-      - Log just remaining tasks when upon all instances of a task completing
+  - Log each finished instance and output remaining tasks w/ counts (current behaviour)
+  - Log each task once when all of its instances have stopped
+  - Log just remaining tasks when upon all instances of a task completing
