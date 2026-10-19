@@ -63,8 +63,8 @@ shutdown-progress-writer = ["elme-shutdown?/progress-writer"]
 shutdown-instance-ids = ["elme-shutdown?/instance-ids"]
 
 [dependencies]
-elme-config = { version = "0.0.3", path = "../elme-config", optional = true }
-elme-db = { version = "0.0.4", path = "../elme-db", optional = true }
+elme-config = { version = "0.0.4", path = "../elme-config", optional = true }
+elme-db = { version = "0.0.5", path = "../elme-db", optional = true }
 elme-error = { version = "0.0.1", path = "../elme-error", optional = true }
 elme-otel = { version = "0.0.1", path = "../elme-otel", optional = true }
 elme-shutdown = { version = "0.2.3", path = "../elme-shutdown", default-features = false, optional = true }
