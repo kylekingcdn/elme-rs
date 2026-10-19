@@ -214,7 +214,7 @@ impl TaskHandle {
     #[cfg_attr(docsrs, doc(cfg(feature = "instance-ids")))]
     #[must_use]
     pub fn instance_id(&self) -> Option<&str> {
-        self.instance_id.as_ref().map(|id| id.as_str())
+        self.instance_id.as_deref()
     }
 
     /// Provides access to the [`ShutdownManager`]
