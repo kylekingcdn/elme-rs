@@ -1,4 +1,8 @@
+#![cfg_attr(not(feature = "instance-ids"), allow(unused))]
+
+#[cfg(feature = "instance-ids")]
 mod worker;
+#[cfg(feature = "instance-ids")]
 use worker::WorkerManager;
 
 use elme_shutdown::ShutdownManager;
@@ -12,6 +16,7 @@ const TIMEOUT_SEC: u64 = 15;
 /// Artificial delay added to startup
 const STARTUP_DELAY_SEC: u64 = 3;
 
+#[cfg(feature = "instance-ids")]
 #[tokio::main]
 async fn main() -> color_eyre::Result<ExitCode> {
     //
@@ -49,20 +54,21 @@ async fn main() -> color_eyre::Result<ExitCode> {
 
     // - init + run loop
     //   returns control upon stop command teardown completion
-    while shutdown_mgr.app_should_start() { // provides support for live-reload
-
+    while shutdown_mgr.app_should_start() // provides support for live-reload
+    {
         // – init app
         //   any init that is not 'one-time' should happen here
         shutdown_mgr.inform_starting()?;
         let worker_mgr_handle = shutdown_mgr.register_task("Worker manager")?;
         let workers = WorkerManager::try_new(worker_mgr_handle)?;
+        // artificial startup delay to allow for queued command experimentation
         tracing::warn!("Delaying startup for {STARTUP_DELAY_SEC}s");
         tokio::time::sleep(Duration::from_secs(STARTUP_DELAY_SEC)).await;
 
         // – run app
         shutdown_mgr.inform_started()?;
-        workers.run();  // manager spawns all tasks (non-async), and returns
-                        // ..maybe manager isn't the best name to use..
+        workers.run(); // spawns workers and returns
+
         // - teardown
         shutdown_mgr.wait_for_teardown_done().await; // now wait for tasks to end gracefully
     }
@@ -71,4 +77,9 @@ async fn main() -> color_eyre::Result<ExitCode> {
     let exit_code = shutdown_mgr.exit_code().unwrap_or(0);
 
     Ok(exit_code.into())
+}
+
+#[cfg(not(feature = "instance-ids"))]
+fn main() {
+    println!("This example requires the `instance-ids` feature");
 }
