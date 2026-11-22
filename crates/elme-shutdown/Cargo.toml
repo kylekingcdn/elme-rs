@@ -31,7 +31,7 @@ full = [
 ## show lifecycle and task teardown progress
 progress = ["dep:indicatif"]
 ## provides tracing-subscriber writer for proper tracing output
-progress-writer = ["progress", "tracing-subscriber/fmt", "tracing-subscriber/std"]
+progress-writer = ["progress", "dep:tracing-subscriber", "tracing-subscriber/fmt", "tracing-subscriber/std"]
 ## adds support for user-provided TaskHandle instance ids
 instance-ids = []
 ## override config deserialize support
@@ -41,7 +41,7 @@ serde = ["dep:serde", "lib-conf/serde"]
 chrono = { workspace = true, features = ["clock", "now"] }
 console = { workspace = true, features = ["default"] }
 indicatif = { workspace = true, optional = true }
-lib-conf = { workspace = true, features = ["derive", "adapter-tracing-level"] }
+lib-conf = { workspace = true, features = ["derive", "adapter-tracing"] }
 serde = { workspace = true, optional = true, features = ["std", "derive"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }

@@ -1,15 +1,9 @@
-use lib_conf::{
-    LibConfig,
-    adapter::{
-        duration::SecondsAdapter,
-        tracing_level::TracingLevelAdapter,
-    }
-};
+use lib_conf::{adapter, LibConfig};
 use std::time::Duration;
 
 /// User configuration for `elme-shutdown`
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Copy, Clone, LibConfig)]
+#[derive(Debug, Clone, LibConfig)]
 #[config(example_field_name = "shutdown")]
 pub struct ShutdownConfig {
     /// The time to wait for tasks to gracefully stop.
@@ -18,7 +12,7 @@ pub struct ShutdownConfig {
     /// terminated (termination applies to both Stop and Reload commands)
     #[config(
         copy, default = Duration::from_secs(10),
-        override_from = u64, override_via = SecondsAdapter,
+        override_from = u64, override_via = adapter::duration::Sec,
         override_from_copy,
     )]
     pub(crate) timeout: Duration,
@@ -57,7 +51,7 @@ pub struct ShutdownConfig {
     /// Windows does not have an event equivalent to `SIGHUP`. Therefore, by default, a `Reload` command can only be triggered programmatically
     /// via [`ShutdownManager::reload()`](crate::ShutdownManager::reload).
     ///
-    /// For `SIGHUP`-like behavior, [`reload_on_ctrl_break`](Self::reload_on_ctrl_break) can be enabled to issue `Reload`
+    /// For `SIGHUP`-like behavior, [`reload_on_ctrl_break`] can be enabled to issue `Reload`
     /// upon `CTRL`+`BREAK`, as opposed to the default of issuing `Stop`.
     ///
     /// # Multiple invocations
@@ -65,6 +59,15 @@ pub struct ShutdownConfig {
     /// By default, when a `Stop`-issuing signal is a 2nd time, the application terminates immediately.
     ///
     /// See [`terminate_on_second_signal`](Self::terminate_on_second_signal) for more information.
+    ///
+    #[cfg_attr(
+        any(docsrs, windows),
+        doc = " [`reload_on_ctrl_break`]: Self::reload_on_ctrl_break"
+    )]
+    #[cfg_attr(
+        not(any(docsrs, windows)),
+        doc = " [`reload_on_ctrl_break`]: https://docs.rs/elme-shutdown/latest/elme_shutdown/config/struct.ShutdownConfig.html#method.reload_on_ctrl_break"
+    )]
     #[cfg(any(unix, windows))]
     #[cfg_attr(docsrs, doc(cfg(any(unix, windows))))]
     #[config(copy, default = true)]
@@ -125,7 +128,7 @@ pub struct ShutdownConfig {
     /// Has no effect if messages have been disabled ([`log_teardown_remaining`](Self::log_teardown_remaining) set to`false`).
     #[config(
         copy, default = tracing::Level::INFO,
-        override_from = String, override_via = TracingLevelAdapter,
+        override_from = String, override_via = adapter::tracing::Level,
     )]
     pub(crate) log_teardown_remaining_level: tracing::Level,
 
@@ -138,7 +141,7 @@ pub struct ShutdownConfig {
     /// Has no effect if stats messages have been disabled ([`log_teardown_stats`](Self::log_teardown_stats) set to`false`).
     #[config(
         copy, default = tracing::Level::INFO,
-        override_from = String, override_via = TracingLevelAdapter,
+        override_from = String, override_via = adapter::tracing::Level,
     )]
     pub(crate) log_teardown_stats_level: tracing::Level,
 
@@ -151,7 +154,7 @@ pub struct ShutdownConfig {
     /// Has no effect if timeout stats messages have been disabled ([`log_timeout_stats`](Self::log_timeout_stats) set to`false`).
     #[config(
         copy, default = tracing::Level::ERROR,
-        override_from = String, override_via = TracingLevelAdapter,
+        override_from = String, override_via = adapter::tracing::Level,
     )]
     pub(crate) log_timeout_stats_level: tracing::Level,
 }
