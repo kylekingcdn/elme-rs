@@ -52,6 +52,11 @@ serde = [
 ## The `db` module must still be explicitly enabled
 db-op-traits = ["elme-db?/op-traits"]
 
+# ! elme-shutdown
+
+## Enables the `elme-shutdown` module, along with its `full` feature group
+shutdown-full = ["dep:elme-shutdown", "elme-shutdown/full"]
+
 ## Enables the `progress` feature of the `shutdown` module.
 ## The `shutdown` module must still be explicitly enabled
 shutdown-progress = ["elme-shutdown?/progress"]
