@@ -278,11 +278,11 @@ impl SharedState {
         self.pending_command
     }
 
-    /// Returns true after calling [`inform_starting`], up until [`inform_started`] is called
+    /// Returns true after calling [`inform_starting`](Self::inform_starting), up until [`inform_started`](Self::inform_started) is called
     pub(crate) fn startup_in_progress(&self) -> bool {
         self.startup_done_token.as_ref().is_some_and(|t| !t.is_cancelled())
     }
-    /// Returns true once [`inform_started`] is called
+    /// Returns true once [`inform_started`](Self::inform_started) is called
     pub(crate) fn startup_done(&self) -> bool {
         self.startup_done_token.as_ref().is_some_and(CancellationToken::is_cancelled)
     }
@@ -291,7 +291,7 @@ impl SharedState {
     /// Continues to return true once teardown finishes
     ///
     /// For reload commands, it will begin returning false again
-    /// once [`inform_starting`] is called
+    /// once [`inform_starting`](Self::inform_starting) is called
     pub(crate) fn teardown_started(&self) -> bool {
         self.teardown_start_token.is_cancelled()
     }
@@ -451,7 +451,7 @@ impl SharedState {
         locked.task_registry.rebuild_registration_channel();
     }
 
-    /// shared will be locked during monitor init, only to be used to call [`finish_teardown`] after starting
+    /// shared will be locked during monitor init, only to be used to call [`finish_teardown`](Self::finish_teardown) after starting
     fn spawn_teardown_monitor(&self, shared: LockingSharedState) {
         let params = TeardownMonitorParams {
             options: self.options,

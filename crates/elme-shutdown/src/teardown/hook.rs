@@ -70,7 +70,7 @@ impl HookDeps {
 /// <ul><li>E.g. logging each task as its unregistered, or providing progress UI.</li></ul>
 /// </div>
 ///
-/// The purpose of aggregating hook dispatch here is to avoid polluting the [`UnregisterHandler`]
+/// The purpose of aggregating hook dispatch here is to avoid polluting the [`UnregisterHandler`](crate::teardown::UnregisterHandler)
 /// with unrelated fn calls and feature gate blocks
 pub(crate) struct HookDispatcher {
     log: TeardownLogHook,

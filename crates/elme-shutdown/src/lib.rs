@@ -58,6 +58,14 @@
     not(feature = "progress-writer"),
     doc = " [`ProgressWriter`]: https://docs.rs/elme-shutdown/latest/elme_shutdown/struct.ProgressWriter.html"
 )]
+#![cfg_attr(
+    any(docsrs, windows),
+    doc = " [`ShutdownConfig::reload_on_ctrl_break`]: ShutdownConfig::reload_on_ctrl_break"
+)]
+#![cfg_attr(
+    not(any(docsrs, windows)),
+    doc = " [`ShutdownConfig::reload_on_ctrl_break`]: https://docs.rs/elme-shutdown/latest/elme_shutdown/config/struct.ShutdownConfig.html#method.reload_on_ctrl_break"
+)]
 
 /// Types relating to the set of supported commands
 pub mod command;

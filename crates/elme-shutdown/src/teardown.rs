@@ -179,7 +179,7 @@ pub(crate) type TeardownResult = Result<TeardownStats, TeardownTimeoutStats>;
 ///
 /// Instances of [`RegistrationMessage::Register`] are dropped, and instances of
 /// [`RegistrationMessage::Unregister`] are mapped directly to
-/// [`UnretgisterMessage::Unregister`].
+/// [`UnregisterMessage::Unregister`].
 ///
 /// The timeout message is used to notify [`MessageProxy`] that the graceful
 /// task stop threshold has been crossed and should stop processing unregistered

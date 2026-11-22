@@ -12,7 +12,7 @@ publish.workspace = true
 workspace = true
 
 [features]
-# ! Module flags
+# !- Module flags
 
 ## Enables the `elme-config` module
 ## serde is a mandatory dep, include the serde feature so other modules benefit
@@ -44,7 +44,9 @@ serde = [
     "elme-shutdown?/serde",
 ]
 
-# ! Module-specific features
+# !- Module-specific features
+
+# ! elme-db
 
 ## Enables the `op-traits` feature of the `db` module.
 ## The `db` module must still be explicitly enabled

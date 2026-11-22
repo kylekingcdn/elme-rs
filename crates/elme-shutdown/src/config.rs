@@ -122,7 +122,7 @@ pub struct ShutdownConfig {
 
     /// The [`tracing::Level`] used for the 'remaining tasks' teardown log messages.
     ///
-    /// Has no effect if messages have been disabled ([`log_teardown_remaining`] set to`false`).
+    /// Has no effect if messages have been disabled ([`log_teardown_remaining`](Self::log_teardown_remaining) set to`false`).
     #[config(
         copy, default = tracing::Level::INFO,
         override_from = String, override_via = TracingLevelAdapter,
@@ -148,7 +148,7 @@ pub struct ShutdownConfig {
 
     /// The [`tracing::Level`] used for the timed-out teardown stats report.
     ///
-    /// Has no effect if timeout stats messages have been disabled ([`log_timeout_stats`] set to`false`).
+    /// Has no effect if timeout stats messages have been disabled ([`log_timeout_stats`](Self::log_timeout_stats) set to`false`).
     #[config(
         copy, default = tracing::Level::ERROR,
         override_from = String, override_via = TracingLevelAdapter,

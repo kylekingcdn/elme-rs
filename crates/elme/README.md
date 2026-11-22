@@ -124,9 +124,10 @@ And provides utility traits supporting:
   - Allows for inline chaining of queries - with optional, automatic tx commit/rollback handling
 
 <div class="warning">
-<b>This module currently only supports <a href="https://docs.rs/sqlx/latest/)"><code>sqlx</code></a> used with <i>PostgreSQL</i> databases.</b>
-<br><br>
-Support may be extended in the future.
+  <b>This module currently only supports <a href="https://docs.rs/sqlx/latest/)"><code>sqlx</code></a> used with <i>PostgreSQL</i> databases.</b>
+  <br>
+  <br>
+  Support may be extended in the future.
 </div>
 
 [**crates.io**](https://crates.io/crates/elme-db)
