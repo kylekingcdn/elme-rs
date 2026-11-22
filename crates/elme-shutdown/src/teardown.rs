@@ -104,24 +104,27 @@ impl UnregisterHandler {
             self.hook_deps.clone(),
         );
 
-        while let Some(msg) = self.rx.recv().await {
-            tracing::trace!("UnregisterHandler got message: {msg:?}");
-            match msg {
-                UnregisterMessage::Timeout => {
-                    tracing::debug!("Unregister handler has timed out - wrapping up");
-                    break;
-                }
-                UnregisterMessage::Unregister(task_name) => {
-                    if let Err(error) = self.transition_map.try_deduct_remaining(task_name) {
-                        tracing::error!("failed to deduct task count: {error}");
-                        panic!("failed to deduct task count: {error}");
-                    }
-
-                    hook_dispatcher.on_task_unregistered(&self.transition_map, task_name);
-
-                    // teardown done
-                    if !self.transition_map.has_active_tasks() {
+        // skip loop if no tasks were active when teardown started
+        if self.transition_map.has_active_tasks() {
+            while let Some(msg) = self.rx.recv().await {
+                tracing::trace!("UnregisterHandler got message: {msg:?}");
+                match msg {
+                    UnregisterMessage::Timeout => {
+                        tracing::debug!("Unregister handler has timed out - wrapping up");
                         break;
+                    }
+                    UnregisterMessage::Unregister(task_name) => {
+                        if let Err(error) = self.transition_map.try_deduct_remaining(task_name) {
+                            tracing::error!("failed to deduct task count: {error}");
+                            panic!("failed to deduct task count: {error}");
+                        }
+
+                        hook_dispatcher.on_task_unregistered(&self.transition_map, task_name);
+
+                        // teardown done
+                        if !self.transition_map.has_active_tasks() {
+                            break;
+                        }
                     }
                 }
             }
